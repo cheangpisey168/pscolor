@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://pscolor.com/sitemap.xml
+Sitemap: https://www.pscolor.online/sitemap.xml

@@ -20,7 +20,7 @@ export const monetizationConfig = {
     },
     framer: {
       name: 'Framer',
-      label: 'Partner',
+      label: 'Sponsored',
       url: 'https://www.framer.com/', // Insert your affiliate link: e.g. https://framer.com?via=...
       headline: 'Design Partner',
       description: 'Build responsive websites with interactive components and custom color themes.',

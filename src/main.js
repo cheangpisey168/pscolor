@@ -20,6 +20,7 @@ import {
   trackImageExtract,
   trackCodeExport,
   trackAffiliateClick,
+  trackEvent,
   hasUserConsent,
   setAnalyticsConsent
 } from './analytics.js';
@@ -201,10 +202,12 @@ document.querySelector('#app').innerHTML = `
           <a href="/collection" data-route="/collection">My Collection</a>
           <div class="line"></div>
           <a href="/about" data-route="/about">About PS color</a>
+          <a href="/contact" data-route="/contact">Contact Us</a>
           <a href="/terms" data-route="/terms">Terms of Service</a>
           <a href="/privacy" data-route="/privacy">Privacy Policy</a>
           <div class="line"></div>
           <button data-about>Quick About</button>
+          <button data-cookie-settings>Cookie Preferences</button>
           <button data-export>Export Collection (JSON)</button>
         </nav>
       </div>
@@ -222,12 +225,66 @@ document.querySelector('#app').innerHTML = `
       <div class="line"></div>
       <div id="collection-preview"></div>
       <div class="sidebar-sponsor">
+        <div class="sponsor-badge">${escape(monetizationConfig.partners.framer.label || 'Sponsored')}</div>
         <h4>${escape(monetizationConfig.partners.framer.headline)}</h4>
         <p>${escape(monetizationConfig.partners.framer.description)}</p>
         <a href="${escape(monetizationConfig.partners.framer.url)}" target="_blank" rel="noopener sponsored">${escape(monetizationConfig.partners.framer.cta)}</a>
       </div>
     </aside>
   </div>
+  <footer class="site-footer">
+    <div class="footer-inner wrap">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-brand">
+            <img src="/img/ps-color-logo.svg" alt="PS color emblem" width="28" height="28">
+            <span>PS color</span>
+          </div>
+          <p>An independent, modern color discovery and accessibility platform engineered for web designers, mobile developers, and digital artists. 100% free for commercial use.</p>
+          <p style="font-size: 12px; color: var(--text-muted);">Calculates WCAG 2.1 relative luminance and contrast, extracts dominant palettes from photos, and exports ready-to-use tokens for Tailwind CSS, CSS Custom Properties, and Figma.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Explore</h4>
+          <ul class="footer-links">
+            <li><a href="/" data-route="/">Newest Palettes</a></li>
+            <li><a href="/popular" data-route="/popular">Popular Trends</a></li>
+            <li><a href="/random" data-route="/random">Random Inspiration</a></li>
+            <li><a href="/create" data-route="/create">Create & Extract</a></li>
+            <li><a href="/collection" data-route="/collection">Saved Collection</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Popular Themes</h4>
+          <ul class="footer-links">
+            <li><a href="/palettes/pastel" data-route="/palettes/pastel">Pastel Palettes</a></li>
+            <li><a href="/palettes/vintage" data-route="/palettes/vintage">Vintage Palettes</a></li>
+            <li><a href="/palettes/retro" data-route="/palettes/retro">Retro Palettes</a></li>
+            <li><a href="/palettes/neon" data-route="/palettes/neon">Neon Palettes</a></li>
+            <li><a href="/palettes/warm" data-route="/palettes/warm">Warm & Summer</a></li>
+            <li><a href="/palettes/dark" data-route="/palettes/dark">Dark & Night</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Company & Trust</h4>
+          <ul class="footer-links">
+            <li><a href="/about" data-route="/about">About PS color</a></li>
+            <li><a href="/contact" data-route="/contact">Contact Support</a></li>
+            <li><a href="/terms" data-route="/terms">Terms of Service</a></li>
+            <li><a href="/privacy" data-route="/privacy">Privacy Policy</a></li>
+            <li><button data-cookie-settings>Cookie Preferences</button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 PS Color. All color combinations are free for commercial and personal use without attribution.</div>
+        <div class="footer-bottom-links">
+          <a href="/privacy" data-route="/privacy">Privacy</a>
+          <a href="/terms" data-route="/terms">Terms</a>
+          <a href="/contact" data-route="/contact">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 `;
 
 const search = document.querySelector('#search');
@@ -338,6 +395,11 @@ function filtered() {
 }
 
 function renderMeta() {
+  if (['about', 'contact', 'terms', 'privacy', 'create'].includes(mode)) {
+    document.querySelector('#meta').innerHTML = '';
+    return;
+  }
+
   const heading = tags.length ?
     `${tags.map(t => t[0].toUpperCase() + t.slice(1)).join(' & ')} Color Palettes` :
     mode === 'collection' ? 'Your Color Collection' :
@@ -521,7 +583,7 @@ function route() {
     (path[1] || '').split('-').filter(t => tagsBank.some(item => item.tag === t.toLowerCase())) :
     [];
 
-  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'terms', 'privacy'].includes(root) ? root : 'new';
+  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'contact', 'terms', 'privacy'].includes(root) ? root : 'new';
   query = '';
   limit = 36;
 
@@ -536,6 +598,8 @@ function route() {
     renderCreator();
   } else if (root === 'about') {
     renderAboutPage();
+  } else if (root === 'contact') {
+    renderContactPage();
   } else if (root === 'terms') {
     renderTermsPage();
   } else if (root === 'privacy') {
@@ -563,7 +627,7 @@ function route() {
           'creator': {
             '@type': 'Organization',
             'name': 'PS color',
-            'url': 'https://pscolor.com'
+            'url': 'https://www.pscolor.online'
           },
           'keywords': (p.tags || []).join(', ')
         }
@@ -587,6 +651,12 @@ function route() {
       title: 'About PS color — Independent Color Discovery',
       description: 'Learn about PS color, an independent, copyright-safe, local-first palette discovery platform built for designers and developers.',
       path: '/about'
+    });
+  } else if (root === 'contact') {
+    updateSeo({
+      title: 'Contact Us — PS color Support & Inquiries',
+      description: 'Contact the PS color team for support, feature requests, commercial inquiries, partnership questions, and publisher feedback.',
+      path: '/contact'
     });
   } else if (root === 'terms') {
     updateSeo({
@@ -681,6 +751,22 @@ function openExportModal(id) {
   `);
 }
 
+function getPaletteEditorial(p) {
+  const tagList = p.tags && p.tags.length ? p.tags.join(', ') : 'modern, digital';
+  const c1 = p.colors[0].toUpperCase();
+  const c2 = p.colors[1].toUpperCase();
+  const c3 = p.colors[2].toUpperCase();
+  const c4 = p.colors[3].toUpperCase();
+  
+  const hasWarm = p.tags.some(t => ['warm', 'summer', 'sunset', 'orange', 'red', 'yellow', 'gold'].includes(t.toLowerCase()));
+  const hasCool = p.tags.some(t => ['cold', 'winter', 'sky', 'sea', 'blue', 'teal', 'mint'].includes(t.toLowerCase()));
+  const tempDesc = hasWarm && hasCool ? 'balanced warm and cool tones' : hasWarm ? 'radiant, energetic warm tones' : hasCool ? 'refreshing, tranquil cool hues' : 'harmonious complementary tones';
+
+  const narrative = `This four-color scheme pairs ${c1}, ${c2}, ${c3}, and ${c4} to create ${tempDesc} tailored for ${tagList} aesthetics. In digital product interfaces, utilize the 41% base canvas (${c1}) to anchor background surfaces, map the 26% secondary tone (${c2}) to cards and containers, employ the 18% tier (${c3}) for clean structural borders, and leverage the 15% focal accent (${c4}) for interactive CTA buttons, badges, and high-impact micro-interactions.`;
+
+  return { narrative };
+}
+
 function renderDetail(id) {
   const p = getPalette(id);
   if (!p) {
@@ -697,6 +783,9 @@ function renderDetail(id) {
   const cssVars = getCssSnippet(p.colors);
   const contrast = getContrast(p.colors[0], p.colors[3]);
   const rating = getWcagRating(contrast);
+  const contrast2 = getContrast(p.colors[1], p.colors[3]);
+  const rating2 = getWcagRating(contrast2);
+  const editorial = getPaletteEditorial(p);
 
   document.querySelector('#content').innerHTML = `
     <div class="detail">
@@ -740,6 +829,31 @@ function renderDetail(id) {
           <span class="contrast-badge ${rating.pass ? 'pass' : 'fail'}">${escape(rating.label)}</span>
         </div>
         <div class="contrast-score">Ratio: ${contrast}:1</div>
+      </div>
+
+      <div class="palette-guide-section" style="max-width: 580px; margin: 24px auto 0; padding: 22px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-card); text-align: left;">
+        <h3 style="font-size: 16px; margin: 0 0 10px 0; color: var(--text-main);">Palette Design Guide &amp; UI Applications</h3>
+        <p style="font-size: 13.5px; line-height: 1.6; color: var(--text-muted); margin: 0 0 16px 0;">${editorial.narrative}</p>
+        
+        <h4 style="font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-main); margin: 0 0 8px 0;">Recommended UI Weight Distribution</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px; margin-bottom: 16px;">
+          <div style="padding: 8px 10px; background: var(--bg-base); border-radius: 6px;"><strong style="color:var(--text-main)">● 41% Base:</strong> Canvas background (${p.colors[0]})</div>
+          <div style="padding: 8px 10px; background: var(--bg-base); border-radius: 6px;"><strong style="color:var(--text-main)">● 26% Surface:</strong> Card &amp; panel fills (${p.colors[1]})</div>
+          <div style="padding: 8px 10px; background: var(--bg-base); border-radius: 6px;"><strong style="color:var(--text-main)">● 18% Structure:</strong> Borders &amp; dividers (${p.colors[2]})</div>
+          <div style="padding: 8px 10px; background: var(--bg-base); border-radius: 6px;"><strong style="color:var(--text-main)">● 15% Accent:</strong> Primary CTA &amp; focus (${p.colors[3]})</div>
+        </div>
+
+        <h4 style="font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-main); margin: 0 0 8px 0;">WCAG 2.1 Accessibility Matrix</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:var(--bg-base); border-radius:6px;">
+            <span>Canvas (${p.colors[0]}) &amp; Accent</span>
+            <span class="contrast-badge ${rating.pass ? 'pass' : 'fail'}" style="font-size:10px; padding:2px 6px;">${contrast}:1 (${rating.level.toUpperCase()})</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:var(--bg-base); border-radius:6px;">
+            <span>Surface (${p.colors[1]}) &amp; Accent</span>
+            <span class="contrast-badge ${rating2.pass ? 'pass' : 'fail'}" style="font-size:10px; padding:2px 6px;">${contrast2}:1 (${rating2.level.toUpperCase()})</span>
+          </div>
+        </div>
       </div>
 
       <div class="chips detail-tags">
@@ -931,20 +1045,312 @@ function updateCreator() {
 
 function renderAboutPage() {
   document.querySelector('#content').innerHTML = `
-    <div class="content-page center">
-      <img class="animated-logo" src="/img/ps-color-logo.svg" alt="PS color emblem">
+    <div class="content-page">
+      <a class="back" href="/" data-route="/">← Back to palettes</a>
       <h1>About PS color</h1>
-      <p>PS color is an independent, free-to-use color discovery workspace engineered for web designers, mobile developers, and digital artists.</p>
-      <h2>Original & Open Source</h2>
-      <p>Designed with modern web standards and zero telemetry, PS color empowers you to curate palettes, test color harmonies, inspect hex & RGB codes, and export tokens effortlessly.</p>
-      <h2>Local First & Privacy Respecting</h2>
-      <p>Your curated collections and custom-created palettes are stored completely in your browser's local storage. You retain full freedom to export your palette collection as JSON at any time.</p>
-      <div style="margin-top: 24px;">
+      <p class="lead" style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: var(--text-main);">PS color is an independent, free-to-use color discovery workspace engineered for web designers, mobile developers, digital artists, and brand strategists. We provide curated four-color palettes, real-time WCAG 2.1 accessibility contrast validation, intelligent image-to-palette extraction, and instant multi-format developer token export.</p>
+      
+      <h2>Our Philosophy: Visual Hierarchy & Harmony</h2>
+      <p>Color theory is fundamental to user experience, brand recognition, and visual ergonomics. Unlike random color generators that produce disconnected hues, every four-color palette on PS color follows an intentional visual weight hierarchy inspired by classical composition:</p>
+      <ul style="margin: 12px 0 20px 20px; line-height: 1.8;">
+        <li><strong>Base Canvas (41%):</strong> The dominant primary background or canvas tone establishing visual stability and ambiance.</li>
+        <li><strong>Structural Surface (26%):</strong> Card surfaces, secondary containers, sidebars, and structural content sections.</li>
+        <li><strong>Secondary Complement (18%):</strong> Borders, subtle dividers, secondary typography, and muted interactive states.</li>
+        <li><strong>Focal Accent (15%):</strong> High-contrast callouts, primary buttons, badges, key metrics, and brand emphasis points.</li>
+      </ul>
+
+      <h2>Accessibility & WCAG 2.1 Compliance</h2>
+      <p>Accessible design is a core principle of modern software engineering. PS color computes relative luminance using the linearized sRGB formula recommended by the World Wide Web Consortium (W3C):</p>
+      <p style="background: var(--bg-surface); padding: 12px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-btn); font-family: monospace; font-size: 13px;">L = 0.2126 × R + 0.7152 × G + 0.0722 × B</p>
+      <p>We evaluate contrast ratios ($[L_1 + 0.05] / [L_2 + 0.05]$) directly within each palette to classify pairings against WCAG Level AA (4.5:1), AAA (7.0:1), and AA Large Text (3.0:1) standards. This guarantees your digital interfaces remain legible for all users across diverse display environments.</p>
+
+      <h2>Developer Token Ecosystem</h2>
+      <p>Bridging design and production code should be frictionless. PS color automatically translates every curated and user-generated palette into ready-to-paste developer tokens:</p>
+      <ul style="margin: 12px 0 20px 20px; line-height: 1.8;">
+        <li><strong>Tailwind CSS:</strong> Ready-to-paste <code>theme.extend.colors</code> module configuration objects.</li>
+        <li><strong>CSS Custom Properties:</strong> Scoped <code>:root</code> variables (<code>--color-1</code> through <code>--color-4</code>).</li>
+        <li><strong>Figma Design Tokens:</strong> Standardized W3C/DTCG JSON token schemas compatible with Figma Variables and Tokens Studio.</li>
+      </ul>
+
+      <h2>100% Free Personal & Commercial License</h2>
+      <p>Every palette on PS color is free for personal and commercial usage in websites, mobile apps, SaaS applications, brand packaging, and print media without mandatory attribution. You hold complete ownership over any derivative designs you create.</p>
+
+      <h2>Publisher & Operational Transparency</h2>
+      <p>PS color is operated by PS Color Studio as an independent digital creative resource. For partnership inquiries, feedback, or technical assistance, visit our <a href="/contact" data-route="/contact">Contact Page</a> or email us at <code>support@pscolor.online</code>.</p>
+
+      <div style="margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap;">
         <button class="button primary" data-route="/">Browse Palettes</button>
+        <button class="button" data-route="/create">Create Custom Palette</button>
       </div>
     </div>
   `;
   renderMeta();
+}
+
+function renderContactPage() {
+  document.querySelector('#content').innerHTML = `
+    <div class="content-page">
+      <a class="back" href="/" data-route="/">← Back to palettes</a>
+      <h1>Contact PS color</h1>
+      <p class="lead" style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: var(--text-main);">Have a question about our color discovery algorithms, design token exports, commercial licensing, or publisher partnerships? We welcome inquiries and respond promptly.</p>
+      
+      <div class="contact-grid">
+        <div class="contact-info-card">
+          <div class="contact-info-item">
+            <h3>Support & General Inquiries</h3>
+            <p>For help with palette creation, image extraction, or technical issues:</p>
+            <p><a href="mailto:support@pscolor.online" style="color: var(--accent-color, #2563eb); font-weight: 600;">support@pscolor.online</a></p>
+          </div>
+          <div class="contact-info-item">
+            <h3>Partnerships & Advertising</h3>
+            <p>For design tool integrations, sponsored features, and commercial opportunities:</p>
+            <p><a href="mailto:partners@pscolor.online" style="color: var(--accent-color, #2563eb); font-weight: 600;">partners@pscolor.online</a></p>
+          </div>
+          <div class="contact-info-item">
+            <h3>Legal & Copyright (DMCA)</h3>
+            <p>For copyright notices, privacy policy inquiries, or legal concerns:</p>
+            <p><a href="mailto:legal@pscolor.online" style="color: var(--accent-color, #2563eb); font-weight: 600;">legal@pscolor.online</a></p>
+          </div>
+          <div class="contact-info-item" style="margin-bottom: 0;">
+            <h3>Operating Publisher</h3>
+            <p style="margin: 0;"><strong>PS Color Studio</strong><br>Independent Design &amp; Developer Tools Platform<br>Global Availability &bull; Cloudflare Edge Network<br>Response Time: Within 24–48 business hours</p>
+          </div>
+        </div>
+
+        <div class="contact-form-wrapper">
+          <form class="contact-form" id="contact-form" novalidate data-rendered-at="${Date.now()}">
+            <h3 style="margin: 0 0 4px 0; font-size: 18px;">Send a Direct Message</h3>
+            <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--text-muted);">Fill out this form and our support team will get back to you via email.</p>
+            
+            <div id="contact-success" class="contact-alert success" role="alert" aria-live="polite" hidden>
+              ✓ Thank you! Your message has been sent successfully. We will reply within 24–48 hours.
+            </div>
+
+            <div id="contact-error" class="contact-alert error" role="alert" aria-live="assertive" hidden></div>
+
+            <!-- Anti-spam honeypot (hidden from human visitors) -->
+            <input type="checkbox" name="botcheck" id="contact-botcheck" style="display:none !important;" tabindex="-1" autocomplete="off">
+
+            <div class="form-group">
+              <label for="contact-name">Your Name <span class="required" aria-hidden="true">*</span></label>
+              <input type="text" id="contact-name" name="name" required placeholder="e.g. Alex Rivera" autocomplete="name" maxlength="80">
+              <span class="field-error" id="name-error" hidden></span>
+            </div>
+            
+            <div class="form-group">
+              <label for="contact-email">Email Address <span class="required" aria-hidden="true">*</span></label>
+              <input type="email" id="contact-email" name="email" required placeholder="e.g. alex@example.com" autocomplete="email" maxlength="120">
+              <span class="field-error" id="email-error" hidden></span>
+            </div>
+
+            <div class="form-group">
+              <label for="contact-topic">Inquiry Topic <span class="required" aria-hidden="true">*</span></label>
+              <select id="contact-topic" name="topic" required>
+                <option value="support">General Support &amp; Feature Feedback</option>
+                <option value="partnership">Commercial / Partnership Inquiry</option>
+                <option value="bug">Bug Report / Technical Issue</option>
+                <option value="privacy">Privacy / Data Protection</option>
+                <option value="other">Other Inquiry</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="contact-subject">Subject <span class="required" aria-hidden="true">*</span></label>
+              <input type="text" id="contact-subject" name="subject" required placeholder="Brief summary of your inquiry" maxlength="120" autocomplete="off">
+              <span class="field-error" id="subject-error" hidden></span>
+            </div>
+
+            <div class="form-group">
+              <label for="contact-message">Message <span class="required" aria-hidden="true">*</span></label>
+              <textarea id="contact-message" name="message" required placeholder="Please describe your question or feedback in detail (at least 10 characters)..." maxlength="5000"></textarea>
+              <span class="field-error" id="message-error" hidden></span>
+            </div>
+
+            <button type="submit" id="contact-submit-btn" class="button primary" style="padding: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+              <span>Send Message</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  renderMeta();
+}
+
+let isContactSubmitting = false;
+
+async function handleContactSubmit(e) {
+  e.preventDefault();
+  if (isContactSubmitting) return;
+
+  const form = e.target;
+  const successEl = form.querySelector('#contact-success');
+  const errorEl = form.querySelector('#contact-error');
+  const submitBtn = form.querySelector('#contact-submit-btn') || form.querySelector('button[type="submit"]');
+
+  // Reset top alerts
+  if (successEl) successEl.hidden = true;
+  if (errorEl) {
+    errorEl.hidden = true;
+    errorEl.textContent = '';
+  }
+
+  // Clear previous inline field errors
+  form.querySelectorAll('.field-error').forEach(el => {
+    el.hidden = true;
+    el.textContent = '';
+  });
+  form.querySelectorAll('input, select, textarea').forEach(el => {
+    el.removeAttribute('aria-invalid');
+  });
+
+  // Extract field values
+  const nameInput = form.querySelector('#contact-name');
+  const emailInput = form.querySelector('#contact-email');
+  const topicInput = form.querySelector('#contact-topic');
+  const subjectInput = form.querySelector('#contact-subject');
+  const messageInput = form.querySelector('#contact-message');
+  const botcheckInput = form.querySelector('#contact-botcheck');
+
+  const name = (nameInput?.value || '').trim();
+  const email = (emailInput?.value || '').trim();
+  const topic = (topicInput?.value || '').trim();
+  const subject = (subjectInput?.value || '').trim();
+  const message = (messageInput?.value || '').trim();
+
+  // Spam protection 1: Honeypot check
+  if (botcheckInput && (botcheckInput.checked || botcheckInput.value === 'true')) {
+    console.warn('Bot submission blocked via honeypot.');
+    if (successEl) successEl.hidden = false;
+    form.reset();
+    return;
+  }
+
+  // Spam protection 2: Submission elapsed time (< 1200ms is automated)
+  const renderedAt = Number(form.dataset.renderedAt || 0);
+  if (renderedAt && (Date.now() - renderedAt < 1200)) {
+    if (errorEl) {
+      errorEl.textContent = 'Please take a moment to review your message before submitting.';
+      errorEl.hidden = false;
+    }
+    return;
+  }
+
+  // Client-side field validations
+  const errors = {};
+  if (!name || name.length < 2) {
+    errors.name = 'Please enter your name (at least 2 characters).';
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+  if (!email || !emailRegex.test(email)) {
+    errors.email = 'Please enter a valid email address.';
+  }
+
+  if (!subject || subject.length < 3) {
+    errors.subject = 'Please enter a subject (at least 3 characters).';
+  }
+
+  if (!message || message.length < 10) {
+    errors.message = 'Please enter a message (at least 10 characters).';
+  }
+
+  const errorFields = Object.keys(errors);
+  if (errorFields.length > 0) {
+    errorFields.forEach(field => {
+      const errSpan = form.querySelector(`#${field}-error`);
+      const inputEl = form.querySelector(`#contact-${field}`);
+      if (errSpan) {
+        errSpan.textContent = errors[field];
+        errSpan.hidden = false;
+      }
+      if (inputEl) {
+        inputEl.setAttribute('aria-invalid', 'true');
+      }
+    });
+
+    const firstInvalid = form.querySelector(`#contact-${errorFields[0]}`);
+    if (firstInvalid) firstInvalid.focus();
+
+    if (errorEl) {
+      errorEl.textContent = 'Please correct the highlighted fields and try again.';
+      errorEl.hidden = false;
+    }
+    return;
+  }
+
+  // Read Web3Forms access key from environment
+  const accessKey = (import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || '').trim();
+  if (!accessKey) {
+    if (errorEl) {
+      errorEl.textContent = 'Contact submission is currently unconfigured. Please email us directly at support@pscolor.online.';
+      errorEl.hidden = false;
+    }
+    return;
+  }
+
+  // Prevent duplicate submissions & set loading state
+  isContactSubmitting = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.setAttribute('aria-busy', 'true');
+    submitBtn.innerHTML = '<span>Sending message...</span>';
+  }
+
+  try {
+    const payload = {
+      access_key: accessKey,
+      name,
+      email,
+      subject: `[PS Color Contact: ${topic.toUpperCase()}] ${subject}`,
+      topic,
+      message,
+      from_name: 'PS Color Contact Form',
+      botcheck: ''
+    };
+
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (response.status === 200 && data.success) {
+      if (successEl) {
+        successEl.textContent = '✓ Thank you! Your message has been sent successfully. We will reply within 24–48 hours.';
+        successEl.hidden = false;
+      }
+      form.reset();
+      form.dataset.renderedAt = String(Date.now());
+      // Track generic submission event in GA4 (Zero PII logged)
+      trackEvent('contact_form_submit', { topic });
+    } else {
+      const errorMsg = data.message || 'Unable to deliver your message. Please email us directly at support@pscolor.online.';
+      if (errorEl) {
+        errorEl.textContent = errorMsg;
+        errorEl.hidden = false;
+      }
+      trackEvent('contact_form_fail', { reason: 'api_error' });
+    }
+  } catch (err) {
+    if (errorEl) {
+      errorEl.textContent = 'Network error: could not connect to submission server. Please email support@pscolor.online directly.';
+      errorEl.hidden = false;
+    }
+    trackEvent('contact_form_fail', { reason: 'network_error' });
+  } finally {
+    isContactSubmitting = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.removeAttribute('aria-busy');
+      submitBtn.innerHTML = '<span>Send Message</span>';
+    }
+  }
 }
 
 function renderTermsPage() {
@@ -952,11 +1358,31 @@ function renderTermsPage() {
     <div class="content-page">
       <a class="back" href="/" data-route="/">← Back to palettes</a>
       <h1>Terms of Service</h1>
-      <p>Welcome to PS color. By using this service, you agree to these simple terms:</p>
-      <h2>Free Personal and Commercial License</h2>
-      <p>All color combinations presented on PS color are free for personal and commercial usage in websites, mobile apps, software, brand designs, and illustrations without attribution.</p>
-      <h2>User Generated Palettes</h2>
-      <p>Palettes you design using our palette creator are stored locally on your device. You hold complete rights to any creations derived from them.</p>
+      <p class="lead" style="font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Effective Date: October 17, 2026. Welcome to PS color. By accessing or using our website (pscolor.online), you agree to be bound by these Terms of Service.</p>
+      
+      <h2>1. Free Personal and Commercial License</h2>
+      <p>All color palette arrangements, color swatches, hex codes, and RGB values published on PS color are provided under an open, royalty-free license. You may freely use, modify, embed, and reproduce these color schemes in any medium, including commercial websites, mobile software, SaaS applications, brand guidelines, printed materials, and video games without attribution or licensing fees.</p>
+
+      <h2>2. User-Generated Palettes & Image Extraction</h2>
+      <p>When you design palettes using our Palette Creator or extract color values from uploaded images, all processing occurs directly within your browser client. We do not claim ownership of any original imagery you upload or derivative designs you produce.</p>
+
+      <h2>3. Intellectual Property & Brand Trademarks</h2>
+      <p>The PS color name, custom emblem logo, platform user interface design, source code architecture, and proprietary documentation are protected intellectual property of PS Color Studio. You may not replicate, redistribute, or frame the PS color platform as a competing turnkey service without prior written authorization.</p>
+
+      <h2>4. Sponsored Placements & Affiliate Links</h2>
+      <p>PS color participates in affiliate and sponsored referral programs with design software partners (such as Figma and Framer). In accordance with the Federal Trade Commission (FTC) guidelines and Google Publisher Policies, sponsored cards and partner links are visibly disclosed as "Sponsored" or "Partner". We may receive compensation if you choose to sign up or make a purchase through these links, at no extra cost to you.</p>
+
+      <h2>5. Disclaimer of Warranties</h2>
+      <p>The PS color platform is provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied. While we strive for continuous uptime and rigorous WCAG calculation accuracy, we do not warrant that service will be uninterrupted, error-free, or compatible with all third-party systems.</p>
+
+      <h2>6. Limitation of Liability</h2>
+      <p>In no event shall PS Color Studio, its operators, or affiliates be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your access to or inability to use the service.</p>
+
+      <h2>7. Modifications to Terms</h2>
+      <p>We reserve the right to revise these terms as platform capabilities expand. Significant updates will be reflected with a revised Effective Date at the top of this page.</p>
+
+      <h2>8. Governing Law & Contact</h2>
+      <p>If you have any questions or legal inquiries regarding these Terms of Service, please contact our legal desk at <a href="mailto:legal@pscolor.online">legal@pscolor.online</a> or through our <a href="/contact" data-route="/contact">Contact Page</a>.</p>
     </div>
   `;
   renderMeta();
@@ -968,17 +1394,45 @@ function renderPrivacyPage() {
     <div class="content-page">
       <a class="back" href="/" data-route="/">← Back to palettes</a>
       <h1>Privacy Policy</h1>
-      <p>PS color is built with a strict privacy-first foundation:</p>
-      <h2>Zero Personal Data Tracking</h2>
-      <p>We do not collect personal identifying information, sell user telemetry, or profile individual visitors. The website operates locally in your browser.</p>
-      <h2>Local Storage</h2>
-      <p>Collections and user palettes persist only within your browser local storage (<code>localStorage</code>). You can clear your data or export your collection as JSON at any moment.</p>
-      <h2>Anonymous Telemetry &amp; Do Not Track</h2>
-      <p>We honor browser Do Not Track (DNT) headers. Optional anonymous page metrics are used solely to improve palette search accuracy and performance.</p>
-      <div style="margin-top: 20px; padding: 16px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-btn);">
-        <p style="margin: 0 0 12px 0;"><strong>Telemetry Status:</strong> <span id="consent-status-text">${consent ? 'Active (Anonymous Aggregate)' : 'Disabled / Opted Out'}</span></p>
+      <p class="lead" style="font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Effective Date: October 17, 2026. At PS color (pscolor.online), your privacy is a paramount priority. This Privacy Policy details the types of information we handle, our cookie practices, and how third-party advertising partners operate on our platform.</p>
+
+      <h2>1. Local-First Architecture (Browser Storage)</h2>
+      <p>PS color is built on a privacy-respecting local-first paradigm:</p>
+      <ul style="margin: 10px 0 16px 20px; line-height: 1.8;">
+        <li><strong>Saved Palettes & Collections:</strong> Your liked palettes and custom color creations persist solely in your browser's client-side <code>localStorage</code>. This data never touches a remote database and remains completely on your device.</li>
+        <li><strong>JSON Export & Data Portability:</strong> You can export your entire collection at any moment using our "Export Collection (JSON)" tool, or clear it instantly via your browser settings.</li>
+        <li><strong>Image Extraction Privacy:</strong> When you use our "Extract from Photo" tool, images are processed locally in an HTML5 canvas element. Photos are never uploaded to any remote server or stored in the cloud.</li>
+      </ul>
+
+      <h2>2. Google AdSense & Third-Party Advertising Disclosures</h2>
+      <p>To support the free availability of our platform, PS color works with digital advertising partners, including Google AdSense. In compliance with Google Publisher Policies, we disclose the following:</p>
+      <ul style="margin: 10px 0 16px 20px; line-height: 1.8;">
+        <li>Third-party vendors, including Google, use cookies to serve ads based on a user's prior visits to this website or other websites on the Internet.</li>
+        <li>Google's use of advertising cookies enables it and its partners to serve ads to your users based on their visits to your sites and/or other sites on the Internet.</li>
+        <li>Users may opt out of personalized advertising at any time by visiting <a href="https://myadcenter.google.com/" target="_blank" rel="noopener">Google My Ad Center</a>.</li>
+        <li>Alternatively, users can opt out of a third-party vendor's use of cookies for personalized advertising by visiting the <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">Network Advertising Initiative Consumer Choice Page (aboutads.info)</a>.</li>
+        <li>For comprehensive details on how Google handles advertising data, review <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">How Google uses information from sites or apps that use our services</a>.</li>
+      </ul>
+
+      <h2>3. Cookies & Consent Management (GDPR & ePrivacy)</h2>
+      <p>For visitors residing in the European Economic Area (EEA), United Kingdom, and Switzerland:</p>
+      <p>We deploy Google-certified Consent Management Platform (CMP) standards compliant with the IAB Europe Transparency and Consent Framework (TCF v2.2). Non-essential cookies and personalized ad targeting are only loaded following affirmative user consent. You can modify your preferences at any time using our Cookie Preferences dialog or the telemetry toggle below.</p>
+
+      <div style="margin: 24px 0; padding: 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-card);">
+        <h3 style="margin: 0 0 8px 0; font-size: 15px;">Anonymous Telemetry &amp; Cookie Preferences</h3>
+        <p style="margin: 0 0 12px 0; font-size: 13px;">Manage whether anonymous aggregated telemetry is shared to help improve palette search and performance. We strictly honor browser Do Not Track (DNT) signals.</p>
+        <p style="margin: 0 0 14px 0;"><strong>Telemetry Status:</strong> <span id="consent-status-text" style="font-weight: 600;">${consent ? 'Active (Anonymous Aggregate)' : 'Disabled / Opted Out'}</span></p>
         <button id="toggle-consent" class="button">${consent ? 'Disable Anonymous Telemetry' : 'Enable Anonymous Telemetry'}</button>
       </div>
+
+      <h2>4. California Consumer Privacy Act (CCPA / CPRA)</h2>
+      <p>Under the California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA), California residents have specific rights regarding their personal information. PS color does not sell personal information, nor do we disclose personal data to third parties for monetary consideration. You have the right to request deletion and access your data, which can also be done locally by clearing browser storage.</p>
+
+      <h2>5. Do Not Track (DNT) & Global Privacy Control (GPC)</h2>
+      <p>Our platform automatically checks for browser <code>navigator.doNotTrack</code> and Global Privacy Control headers. When detected, non-essential telemetry is automatically disabled without requiring manual user interaction.</p>
+
+      <h2>6. Privacy Desk & Inquiries</h2>
+      <p>If you have questions, feedback, or data privacy requests, please contact our Data Protection Officer at <a href="mailto:privacy@pscolor.online">privacy@pscolor.online</a> or through our <a href="/contact" data-route="/contact">Contact Support Page</a>.</p>
     </div>
   `;
   renderMeta();
@@ -990,6 +1444,7 @@ window.addEventListener('scroll', () => {
       !location.pathname.startsWith('/palette/') &&
       !location.pathname.startsWith('/create') &&
       !location.pathname.startsWith('/about') &&
+      !location.pathname.startsWith('/contact') &&
       !location.pathname.startsWith('/terms') &&
       !location.pathname.startsWith('/privacy')) {
     if (!isLoadingMore && window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
@@ -1170,6 +1625,12 @@ document.addEventListener('click', e => {
     return;
   }
 
+  if (button.hasAttribute('data-cookie-settings')) {
+    closeMenu();
+    navigate('/privacy');
+    return;
+  }
+
   if (button.hasAttribute('data-export')) {
     const data = [...saved].map(getPalette).filter(Boolean);
     downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'ps-color-collection.json');
@@ -1266,8 +1727,12 @@ document.addEventListener('drop', e => {
   }
 });
 
-// CREATOR SUBMIT
+// FORM SUBMIT HANDLERS
 document.addEventListener('submit', e => {
+  if (e.target.id === 'contact-form') {
+    handleContactSubmit(e);
+    return;
+  }
   if (e.target.id !== 'create-form') return;
   e.preventDefault();
   const colors = [...e.target.querySelectorAll('input[type=color]')].map(el => el.value.toUpperCase());
@@ -1308,6 +1773,38 @@ dialog.addEventListener('click', e => {
   }
 });
 
+function renderCookieBanner() {
+  if (typeof localStorage === 'undefined') return;
+  if (localStorage.getItem('ps-color-analytics-consent') !== null) return;
+  if (document.querySelector('#cookie-banner')) return;
+
+  const banner = document.createElement('aside');
+  banner.id = 'cookie-banner';
+  banner.setAttribute('role', 'region');
+  banner.setAttribute('aria-label', 'Cookie and privacy consent');
+  banner.innerHTML = `
+    <h3>Cookie &amp; Privacy Preferences</h3>
+    <p>PS color uses essential browser storage to preserve your curated color collections and custom palettes. We also use privacy-first aggregate metrics and advertising partner features to keep this resource 100% free. You can customize your preferences anytime.</p>
+    <div class="cookie-actions">
+      <button id="cookie-accept" class="button primary">Accept All</button>
+      <button id="cookie-essential" class="button">Essential Only</button>
+      <a href="/privacy" data-route="/privacy" class="button" style="text-align:center; display:flex; align-items:center; justify-content:center;">Read Policy</a>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  banner.querySelector('#cookie-accept').addEventListener('click', () => {
+    setAnalyticsConsent(true);
+    initAnalytics();
+    banner.remove();
+  });
+
+  banner.querySelector('#cookie-essential').addEventListener('click', () => {
+    setAnalyticsConsent(false);
+    banner.remove();
+  });
+}
+
 window.addEventListener('popstate', route);
 window.addEventListener('storage', () => {
   saved = getSavedSet();
@@ -1315,3 +1812,4 @@ window.addEventListener('storage', () => {
 });
 
 route();
+renderCookieBanner();

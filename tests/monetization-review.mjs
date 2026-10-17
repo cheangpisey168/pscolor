@@ -104,8 +104,10 @@ report('Ad network status is clearly unverified/disabled until live account setu
 // ----------------------------------------------------
 console.log('\n--- 4. Running Browser End-to-End Tests ---');
 
+const systemChrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const localBrowser = process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, 'ms-playwright/chromium-1234/chrome-win64/chrome.exe');
-const browser = await chromium.launch({ headless: true, ...(localBrowser && existsSync(localBrowser) ? { executablePath: localBrowser } : {}) });
+const executablePath = (localBrowser && existsSync(localBrowser)) ? localBrowser : (existsSync(systemChrome) ? systemChrome : undefined);
+const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
 const page = await context.newPage();
 const pageErrors = [];

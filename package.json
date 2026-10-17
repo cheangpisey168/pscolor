@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build && node scripts/build-seo.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node tests/browser.mjs && node tests/monetization-review.mjs && node tests/production-readiness.mjs"
+    "test": "node tests/browser.mjs && node tests/monetization-review.mjs && node tests/production-readiness.mjs && node tests/contact-form.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

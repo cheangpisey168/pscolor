@@ -1,0 +1,3 @@
+# Google AdSense Publisher Authorization Record for PS Color
+# Replace ca-pub-XXXXXXXXXXXXXXXX with your approved Google AdSense publisher ID when issued
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
