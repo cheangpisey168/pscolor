@@ -1,0 +1,30 @@
+[
+  {
+    "id": "f7f0dcd9e4c8a2b89b52796f",
+    "colors": ["#F7F0DC", "#D9E4C8", "#A2B89B", "#52796F"],
+    "tags": ["nature", "sage", "green", "beige", "earth", "pastel", "light"],
+    "likes": 4820,
+    "days": 4
+  },
+  {
+    "id": "2b2d428d99aeedf2f4ef233cd90429",
+    "colors": ["#2B2D42", "#8D99AE", "#EDF2F4", "#EF233C"],
+    "tags": ["modern", "slate", "red", "contrast", "minimal", "ui"],
+    "likes": 7340,
+    "days": 12
+  },
+  {
+    "id": "03045e0077b600b4d890e0efcaf0f8",
+    "colors": ["#03045E", "#0077B6", "#00B4D8", "#90E0EF"],
+    "tags": ["blue", "ocean", "cold", "water", "tech", "gradient"],
+    "likes": 5610,
+    "days": 20
+  },
+  {
+    "id": "ffbe0bfb5607ff006e8338ec3a86ff",
+    "colors": ["#FFBE0B", "#FB5607", "#FF006E", "#8338EC"],
+    "tags": ["neon", "retro", "sunset", "happy", "vibrant", "pop"],
+    "likes": 9180,
+    "days": 45
+  }
+]

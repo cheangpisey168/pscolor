@@ -1,0 +1,16 @@
+{
+  "name": "ps-color",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build && node scripts/build-seo.mjs",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node tests/browser.mjs && node tests/monetization-review.mjs && node tests/production-readiness.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "vite": "^6.4.0"
+  }
+}
