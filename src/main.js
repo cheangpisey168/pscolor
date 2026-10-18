@@ -1423,12 +1423,12 @@ function renderPrivacyPage() {
         <li>Google's use of advertising cookies enables it and its partners to serve ads to your users based on their visits to your sites and/or other sites on the Internet.</li>
         <li>Users may opt out of personalized advertising at any time by visiting <a href="https://myadcenter.google.com/" target="_blank" rel="noopener">Google My Ad Center</a>.</li>
         <li>Alternatively, users can opt out of a third-party vendor's use of cookies for personalized advertising by visiting the <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">Network Advertising Initiative Consumer Choice Page (aboutads.info)</a>.</li>
-        <li>For comprehensive details on how Google handles advertising data, review <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">How Google uses information from sites or apps that use our services</a>.</li>
+        <li>For comprehensive details on how Google handles advertising data, review <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">How Google uses information from sites or apps that use our services</a>.</li>
       </ul>
 
       <h2>3. Cookies & Consent Management (GDPR & ePrivacy)</h2>
       <p>For visitors residing in the European Economic Area (EEA), United Kingdom, and Switzerland:</p>
-      <p>We deploy Google-certified Consent Management Platform (CMP) standards compliant with the IAB Europe Transparency and Consent Framework (TCF v2.2) and Google Consent Mode v2. Non-essential cookies and personalized ad targeting are only loaded following affirmative user consent. You can modify your preferences at any time using our Cookie Preferences dialog or the controls below.</p>
+      <p>We deploy Google-certified Consent Management Platform (CMP) standards compliant with the IAB Europe Transparency and Consent Framework (TCF v2.2 / v2.3) and Google Consent Mode v2. Non-essential cookies and personalized ad targeting are only loaded following affirmative user consent. You can modify your preferences at any time using our Cookie Preferences dialog or the controls below.</p>
 
       <div style="margin: 24px 0; padding: 20px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 16px;">
         <h3 style="margin: 0; font-size: 16px;">Granular Cookie &amp; Telemetry Preferences</h3>
@@ -1565,11 +1565,15 @@ document.addEventListener('click', e => {
   }
 
   if (button.id === 'reopen-google-cmp') {
-    if (window.googlefc && typeof window.googlefc.showRevocationMessage === 'function') {
-      try {
-        window.googlefc.showRevocationMessage();
-      } catch (err) {
-        toast('Could not open European consent message at this time.');
+    if (window.googlefc) {
+      if (typeof window.googlefc.showRevocationMessage === 'function') {
+        try {
+          window.googlefc.showRevocationMessage();
+        } catch (err) {
+          toast('Could not open European consent message at this time.');
+        }
+      } else if (Array.isArray(window.googlefc.callbackQueue)) {
+        window.googlefc.callbackQueue.push(window.googlefc.showRevocationMessage);
       }
     } else {
       toast('Google CMP operates in EEA/UK regions. Use Google My Ad Center for global ad controls.');
@@ -1848,15 +1852,42 @@ dialog.addEventListener('click', e => {
 });
 
 function openCookiePreferences() {
-  if (window.googlefc && typeof window.googlefc.showRevocationMessage === 'function') {
-    try {
-      window.googlefc.showRevocationMessage();
+  if (window.googlefc) {
+    if (typeof window.googlefc.showRevocationMessage === 'function') {
+      try {
+        window.googlefc.showRevocationMessage();
+        return;
+      } catch (err) {
+        console.warn('Google CMP revocation call failed, falling back to privacy page:', err);
+      }
+    } else if (Array.isArray(window.googlefc.callbackQueue)) {
+      window.googlefc.callbackQueue.push(window.googlefc.showRevocationMessage);
       return;
-    } catch (err) {
-      console.warn('Google CMP revocation call failed, falling back to privacy page:', err);
     }
   }
   navigate('/privacy');
+}
+
+// MutationObserver to immediately detect and prevent any overlap with Google CMP elements
+if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+  const cmpObserver = new MutationObserver(() => {
+    const hasCmpElement = Boolean(
+      document.querySelector('.fc-consent-root, .fc-dialog-container, .fc-ab-root, iframe[src*="googlefc"]') ||
+      (window.googlefc && typeof window.googlefc.showRevocationMessage === 'function')
+    );
+    if (hasCmpElement) {
+      window.__tcfActive = true;
+      if (document.body) {
+        document.body.classList.add('has-google-cmp');
+      }
+      if (cookieBannerTimer) clearTimeout(cookieBannerTimer);
+      const banner = document.querySelector('#cookie-banner');
+      if (banner) banner.remove();
+    }
+  });
+  if (document.documentElement) {
+    cmpObserver.observe(document.documentElement, { childList: true, subtree: true });
+  }
 }
 
 let cookieBannerTimer = null;
@@ -1866,12 +1897,19 @@ function renderCookieBanner() {
   // If user already made a selection, do not display banner
   if (localStorage.getItem('ps-color-analytics-consent') !== null) return;
   if (document.querySelector('#cookie-banner')) return;
+  if (document.body?.classList.contains('has-google-cmp')) return;
+  if (window.googlefc || (window.__tcfapi && window.__tcfActive)) return;
 
   // Give Google Certified CMP (AdSense / Funding Choices) time to check IP and show TCF UI if in EEA/UK
   if (cookieBannerTimer) clearTimeout(cookieBannerTimer);
   cookieBannerTimer = setTimeout(() => {
     if (localStorage.getItem('ps-color-analytics-consent') !== null) return;
-    if (window.googlefc || (window.__tcfapi && window.__tcfActive)) return;
+    if (
+      window.googlefc ||
+      (window.__tcfapi && window.__tcfActive) ||
+      document.querySelector('.fc-consent-root, .fc-dialog-container, .fc-ab-root, iframe[src*="googlefc"]') ||
+      document.body?.classList.contains('has-google-cmp')
+    ) return;
     if (document.querySelector('#cookie-banner')) return;
 
     const banner = document.createElement('aside');
@@ -1904,6 +1942,9 @@ function renderCookieBanner() {
 // When Google CMP UI is shown or TCF signals active compliance, dismiss custom banner immediately
 window.addEventListener('ps-color-tcf-active', () => {
   window.__tcfActive = true;
+  if (document.body) {
+    document.body.classList.add('has-google-cmp');
+  }
   if (cookieBannerTimer) clearTimeout(cookieBannerTimer);
   const banner = document.querySelector('#cookie-banner');
   if (banner) banner.remove();

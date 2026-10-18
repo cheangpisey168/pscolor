@@ -4,7 +4,7 @@
  * Supports:
  *  - Google Consent Mode v2 (ad_storage, analytics_storage, ad_user_data, ad_personalization)
  *  - Google Analytics 4 (GA4) via VITE_GA_ID under Basic Consent Mode
- *  - IAB Europe TCF v2.2 synchronization via window.__tcfapi
+ *  - IAB Europe TCF v2.2 / v2.3 synchronization via window.__tcfapi
  *  - Strict Do Not Track (DNT) browser settings
  *  - Affirmative, unbundled opt-in for analytics and advertising
  *  - Complete cookie purging on consent withdrawal
@@ -93,6 +93,10 @@ export function setAnalyticsConsent(granted) {
     localStorage.setItem(STORAGE_ANALYTICS_KEY, granted ? 'granted' : 'denied');
   }
 
+  if (GA_ID && typeof window !== 'undefined') {
+    window[`ga-disable-${GA_ID}`] = !granted;
+  }
+
   updateGtagConsent({
     analytics_storage: granted ? 'granted' : 'denied'
   });
@@ -127,6 +131,10 @@ export function setAllConsent({ analytics = false, advertising = false } = {}) {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_ANALYTICS_KEY, analytics ? 'granted' : 'denied');
     localStorage.setItem(STORAGE_ADVERTISING_KEY, advertising ? 'granted' : 'denied');
+  }
+
+  if (GA_ID && typeof window !== 'undefined') {
+    window[`ga-disable-${GA_ID}`] = !analytics;
   }
 
   updateGtagConsent({
@@ -183,7 +191,7 @@ export function initAnalytics() {
 }
 
 /**
- * IAB TCF v2.2 synchronization
+ * IAB TCF v2.2 / v2.3 synchronization
  * Integrates with Google's Certified CMP (Funding Choices / AdSense CMP).
  * Automatically updates Google Consent Mode v2 when European visitors make CMP selections.
  */
@@ -195,11 +203,17 @@ export function initTcfConsentSync() {
 
     // Signal to application that Google CMP UI is visible or GDPR applies
     if (tcData.eventStatus === 'cmpuishown' || tcData.gdprApplies) {
+      if (typeof window !== 'undefined') {
+        window.__tcfActive = true;
+      }
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.add('has-google-cmp');
+      }
       window.dispatchEvent(new CustomEvent('ps-color-tcf-active', { detail: tcData }));
     }
 
-    // Process user decision
-    if (tcData.eventStatus === 'useractioncomplete' || tcData.eventStatus === 'tcloaded') {
+    // Process user decision - strictly only when GDPR applies to this visitor
+    if (tcData.gdprApplies !== false && (tcData.eventStatus === 'useractioncomplete' || tcData.eventStatus === 'tcloaded')) {
       const consents = tcData.purpose?.consents || {};
       // Purpose 1: Store/access information on a device
       // Purpose 8: Measure content performance (analytics)

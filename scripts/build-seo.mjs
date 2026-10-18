@@ -256,13 +256,14 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
         <h2 style="font-size:20px;color:#0f172a;margin-top:24px;margin-bottom:10px;">2. Google AdSense &amp; Advertising Disclosures</h2>
         <p>PS color works with third-party advertising partners, including Google AdSense. In compliance with Google Publisher Policies:</p>
         <ul style="margin:10px 0 16px 20px;line-height:1.8;">
-          <li>Third-party vendors, including Google, use cookies to serve ads based on prior visits to this and other websites.</li>
+          <li>Third-party vendors, including Google, use cookies to serve ads based on prior visits to this and other websites on the Internet.</li>
           <li>Google's use of advertising cookies enables it and its partners to serve ads based on your visit to this site and/or other sites on the Internet.</li>
-          <li>Users may opt out of personalized advertising by visiting Google My Ad Center (https://myadcenter.google.com/) or the Network Advertising Initiative (https://www.aboutads.info/choices/).</li>
+          <li>Users may opt out of personalized advertising by visiting <a href="https://myadcenter.google.com/" target="_blank" rel="noopener">Google My Ad Center</a> or the <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">Network Advertising Initiative Consumer Choice Page (aboutads.info)</a>.</li>
+          <li>For detailed information on how Google uses information from sites or apps that use their services, review <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">How Google uses information from sites or apps that use our services</a>.</li>
         </ul>
 
         <h2 style="font-size:20px;color:#0f172a;margin-top:24px;margin-bottom:10px;">3. Cookies &amp; Consent Management (GDPR / UK GDPR)</h2>
-        <p>For visitors in the EEA, UK, and Switzerland, non-essential advertising and analytics cookies are governed by an IAB TCF v2.2 compliant framework. You can adjust your consent anytime.</p>
+        <p>For visitors in the EEA, UK, and Switzerland, non-essential advertising and analytics cookies are governed by an IAB Europe Transparency and Consent Framework (TCF v2.2 / v2.3) and Google Consent Mode v2 compliant implementation. You can adjust your consent or revoke permissions anytime using the Cookie Preferences link in the footer or via our interactive settings.</p>
       </article>
     `
   });
