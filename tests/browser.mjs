@@ -120,11 +120,9 @@ try {
   assert.ok(page.url().endsWith('/privacy'));
   assert.match(await page.locator('.content-page h1').innerText(), /Privacy Policy/);
 
-  // Test bookmark dialog
+  // Test bookmark button removal from header
   await page.locator('.brand').click();
-  await page.locator('#bookmark').click();
-  assert.equal(await page.locator('dialog').evaluate(el => el.open), true);
-  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#bookmark').count(), 0);
 
   // Test mobile view
   await page.setViewportSize({ width: 390, height: 844 });

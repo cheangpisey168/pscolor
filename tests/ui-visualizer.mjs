@@ -95,6 +95,17 @@ try {
   report('Clicking card Preview navigates to /visualizer/:id', page.url().includes(`/visualizer/${firstPaletteId}`));
   report('Visualizer workspace is visible', await page.locator('.visualizer-workspace').isVisible());
 
+  // Verify proper horizontal spacing between sidebar menu and visualizer left controls panel
+  const panelSpacing = await page.evaluate(() => {
+    const sidebar = document.querySelector('.sidebar.left');
+    const controls = document.querySelector('.visualizer-controls-panel');
+    if (!sidebar || !controls) return 0;
+    const sRect = sidebar.getBoundingClientRect();
+    const cRect = controls.getBoundingClientRect();
+    return Math.round(cRect.x - sRect.right);
+  });
+  report('Visualizer left panel has proper horizontal breathing room from sidebar', panelSpacing >= 20, `${panelSpacing}px`);
+
   // Test 2: Detail page "Preview on UI" button
   await page.goto(`${base}/palette/${firstPaletteId}`);
   await page.locator('#preview-on-ui-btn').waitFor();
@@ -242,6 +253,10 @@ try {
   report('Copy Tailwind button is inside export card boundaries', twBox && exportCardBox && twBox.x + twBox.width <= exportCardBox.x + exportCardBox.width + 2);
   report('Copy Figma button is inside export card boundaries (no horizontal overflow)', figmaBox && exportCardBox && figmaBox.x + figmaBox.width <= exportCardBox.x + exportCardBox.width + 2);
 
+  let tokenDownloadTriggered = false;
+  const tokenDlListener = () => { tokenDownloadTriggered = true; };
+  page.on('download', tokenDlListener);
+
   await cssBtn.click();
   const copiedCss = await page.evaluate(() => navigator.clipboard.readText());
   report('Copy CSS Variables copies valid :root block', copiedCss.includes(':root') && copiedCss.includes('--color-ui-bg'));
@@ -253,6 +268,9 @@ try {
   await figmaBtn.click();
   const copiedFigma = await page.evaluate(() => navigator.clipboard.readText());
   report('Copy Figma exports standard W3C DTCG token JSON format', copiedFigma.includes('$value') && copiedFigma.includes('$type'));
+
+  report('Token copy actions strictly do NOT trigger file download', !tokenDownloadTriggered);
+  page.off('download', tokenDlListener);
 
   // Test 9: Mobile Viewport & Multi-Resolution Responsiveness Verification
   console.log('\n--- Testing Mobile Layout, Data Table & Zero Horizontal Overflow ---');

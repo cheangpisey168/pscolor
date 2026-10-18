@@ -202,16 +202,16 @@ try {
   const toastText = await page.locator('#toast').innerText();
   report('Invalid non-image file is rejected with user toast notification', toastText.includes('valid image file'), toastText);
 
-  // Test 4.14: Responsive Desktop vs Mobile layout
+  // Test 4.14: Responsive Desktop vs Mobile layout & Sidebar sponsor removal
   await page.locator('.brand').click();
-  await page.locator('.sidebar-sponsor').waitFor();
-  report('Desktop view (1440px) shows sidebar partner placement', await page.locator('.sidebar-sponsor').isVisible());
+  const sidebarSponsorCount = await page.locator('.sidebar-sponsor').count();
+  report('Sidebar Framer sponsor card is completely removed from page', sidebarSponsorCount === 0);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(200);
-  const isSidebarHidden = !(await page.locator('.sidebar-sponsor').isVisible());
+  const isSidebarVisible = await page.locator('.sidebar').isVisible();
   const hasNoMobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-  report('Mobile view (390px) cleanly hides sidebar without horizontal overflow', isSidebarHidden && hasNoMobileOverflow);
+  report('Mobile view (390px) cleanly adapts layout without horizontal overflow', isSidebarVisible && hasNoMobileOverflow);
 
   // Test 4.15: Page errors check
   report('No unhandled browser JavaScript errors during entire session', pageErrors.length === 0, pageErrors.join('; '));

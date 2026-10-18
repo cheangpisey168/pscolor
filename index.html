@@ -6,6 +6,18 @@
     <meta name="theme-color" content="#16161a" />
     <meta name="description" content="Discover beautiful, copyright-safe color palettes for your next project. Browse hundreds of curated 4-color palettes, test WCAG contrast, extract from photos, and export CSS & Figma tokens with PS color." />
     
+    <!-- Immediate Theme Initialization (Prevents flashing of wrong theme during initial load) -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('ps-color-theme') || 'system';
+          var isDark = saved === 'dark' || (saved === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme-preference', saved);
+        } catch (e) {}
+      })();
+    </script>
+    
     <!-- Preconnect & Asynchronous Fonts for Optimal Core Web Vitals -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

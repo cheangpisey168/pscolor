@@ -8,7 +8,9 @@ import {
   getWcagRating,
   getTailwindSnippet,
   getCssSnippet,
-  getFigmaTokens
+  getFigmaTokens,
+  copyTextToClipboard,
+  applyWatermark
 } from './utils.js';
 
 import {
@@ -33,6 +35,14 @@ import {
 
 import { updateSeo, generatePaletteSvgUrl } from './seo.js';
 import { UiColorVisualizer } from './visualizer.js';
+import { openShareImageModal } from './share-image.js';
+import {
+  initThemeSystem,
+  toggleTheme,
+  applyTheme,
+  getThemePreference,
+  updateThemeControls
+} from './theme.js';
 
 // Basic Consent Mode: only initialize GA4 if explicit consent has already been granted
 if (hasUserConsent()) {
@@ -63,7 +73,8 @@ const icons = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   bookmark: '<path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
   upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
-  sparkle: '<path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/>'
+  sparkle: '<path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/>',
+  image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>'
 };
 
 const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.new}</svg>`;
@@ -128,8 +139,8 @@ function toast(message) {
 }
 
 async function copy(text, targetEl) {
-  try {
-    await navigator.clipboard.writeText(text);
+  const res = await copyTextToClipboard(text);
+  if (res.success) {
     if (targetEl) {
       const existing = targetEl.querySelector('.copied');
       if (existing) existing.remove();
@@ -140,7 +151,7 @@ async function copy(text, targetEl) {
       setTimeout(() => badge.remove(), 1000);
     }
     toast('Copied to clipboard');
-  } catch {
+  } else {
     toast('Could not copy. Please select and copy manually.');
   }
 }
@@ -200,9 +211,7 @@ document.querySelector('#app').innerHTML = `
         <div id="search-panel" class="dropdown" hidden></div>
       </div>
       <div class="header-right right">
-        <button id="bookmark" class="button bookmark" aria-label="Bookmark PS color">
-          ${icon('bookmark')}
-          <span>Bookmark</span>
+        <button id="theme-toggle" class="icon-button theme-toggle-btn" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">
         </button>
         <button id="menu-toggle" class="icon-button kebab" aria-label="Open navigation menu" aria-expanded="false">
           <i></i><i></i><i></i>
@@ -234,14 +243,8 @@ document.querySelector('#app').innerHTML = `
     <main id="content"></main>
     <aside class="info right">
       <div id="meta"></div>
-      <div class="line"></div>
       <div id="collection-preview"></div>
-      <div class="sidebar-sponsor">
-        <div class="sponsor-badge">${escape(monetizationConfig.partners.framer.label || 'Sponsored')}</div>
-        <h4>${escape(monetizationConfig.partners.framer.headline)}</h4>
-        <p>${escape(monetizationConfig.partners.framer.description)}</p>
-        <a href="${escape(monetizationConfig.partners.framer.url)}" target="_blank" rel="noopener sponsored">${escape(monetizationConfig.partners.framer.cta)}</a>
-      </div>
+      <div id="design-tips" hidden></div>
     </aside>
   </div>
   <footer class="site-footer">
@@ -299,6 +302,8 @@ document.querySelector('#app').innerHTML = `
     </div>
   </footer>
 `;
+
+initThemeSystem();
 
 const search = document.querySelector('#search');
 const panel = document.querySelector('#search-panel');
@@ -414,9 +419,85 @@ function filtered() {
   return list;
 }
 
+const colorDesignTips = [
+  {
+    category: 'UI Composition',
+    title: 'The 60–30–10 Balance Rule',
+    text: 'Allocate 60% of your interface to a dominant neutral background, 30% to structural surfaces (cards & sidebars), and 10% to a high-contrast accent for primary actions.'
+  },
+  {
+    category: 'Color Harmony',
+    title: 'Warm & Cool Temperature',
+    text: 'Ground vibrant warm foreground hues (coral, amber, gold) with deep, cool neutral backgrounds (slate, midnight, obsidian) to create natural depth without visual fatigue.'
+  },
+  {
+    category: 'Accessibility',
+    title: 'Accessible Text Contrast',
+    text: 'Maintain at least a 4.5:1 contrast ratio for normal body text and 3:1 for large text under WCAG 2.1 AA. High contrast ensures readability in sunlight and across varied displays.'
+  },
+  {
+    category: 'Hierarchy',
+    title: 'The Power of One Accent',
+    text: 'When every element is colorful, nothing stands out. Reserve your most saturated accent color strictly for primary actions, active indicators, and critical highlights.'
+  },
+  {
+    category: 'Testing',
+    title: 'Test Palettes in Real UI',
+    text: 'Colors look strikingly different in real layouts than in flat swatch stripes. Always preview your palette in simulated SaaS dashboards, landing pages, and mobile mockups.'
+  }
+];
+
+let currentTipIndex = 0;
+
+function renderDesignTips() {
+  const container = document.querySelector('#design-tips');
+  if (!container) return;
+
+  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer'].includes(mode)) {
+    container.innerHTML = '';
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+  container.className = 'design-tips-card';
+
+  const tip = colorDesignTips[currentTipIndex % colorDesignTips.length];
+  const total = colorDesignTips.length;
+  const currentNum = (currentTipIndex % total) + 1;
+
+  const dotsHtml = colorDesignTips.map((_, i) => `
+    <button type="button" class="tip-dot ${i === (currentTipIndex % total) ? 'active' : ''}" data-tip-index="${i}" aria-label="Go to tip ${i + 1}"></button>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="design-tips-header">
+      <span class="tip-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        ${escape(tip.category)}
+      </span>
+      <span class="tip-counter">${currentNum}/${total}</span>
+    </div>
+    <h3 class="tip-title">${escape(tip.title)}</h3>
+    <p class="tip-description">${escape(tip.text)}</p>
+    <div class="design-tips-footer">
+      <div class="tip-dots">${dotsHtml}</div>
+      <button type="button" id="btn-next-tip" class="tip-next-btn" aria-label="Next color design tip">
+        <span>Next Tip</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+  `;
+}
+
 function renderMeta() {
   if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer'].includes(mode)) {
     document.querySelector('#meta').innerHTML = '';
+    const tips = document.querySelector('#design-tips');
+    if (tips) {
+      tips.innerHTML = '';
+      tips.hidden = true;
+    }
     return;
   }
 
@@ -438,6 +519,7 @@ function renderMeta() {
 
   const list = [...saved].reverse().map(getPalette).filter(Boolean);
   document.querySelector('#collection-preview').innerHTML = list.length ? `
+    <div class="line"></div>
     <a class="collection-title" href="/collection" data-route="/collection">
       <span>Collection</span>
       <span>${list.length}</span>
@@ -451,6 +533,8 @@ function renderMeta() {
       `).join('')}
     </div>
   ` : '';
+
+  renderDesignTips();
 }
 
 function renderFeed(resetScroll = true) {
@@ -828,6 +912,10 @@ function renderDetail(id) {
           ${icon('heart')}
           <span>${liked ? 'Saved' : 'Save'}</span>
         </button>
+        <button class="button" data-share-image="${p.id}" id="detail-share-image-btn" aria-label="Share palette as high-resolution image">
+          ${icon('image')}
+          <span>Share as Image</span>
+        </button>
         <button class="button" data-download="${p.id}">
           ${icon('download')}
           <span>Download PNG</span>
@@ -934,7 +1022,16 @@ function downloadPalette(id) {
   ctx.font = '500 20px JetBrains Mono, monospace';
   ctx.fillText('ps-color.palette/' + id, 220, 1150);
 
-  canvas.toBlob(blob => {
+  // After generating the export image, draw it onto a canvas and add a watermark before download
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = canvas.width;
+  exportCanvas.height = canvas.height;
+  const exportCtx = exportCanvas.getContext('2d');
+  exportCtx.drawImage(canvas, 0, 0);
+
+  applyWatermark(exportCanvas, { text: 'PSColor.online', withLogo: true });
+
+  exportCanvas.toBlob(blob => {
     if (blob) downloadBlob(blob, `ps-color-${id}.png`);
   }, 'image/png');
 }
@@ -1588,13 +1685,34 @@ document.addEventListener('click', e => {
   const button = e.target.closest('button, a, div[data-tab], .dropzone');
 
   if (!e.target.closest('.search-area')) closeSearch();
-  if (!e.target.closest('.header-right')) closeMenu();
+  if (!e.target.closest('#menu-toggle') && !e.target.closest('#menu')) closeMenu();
 
   if (!button) return;
 
   const sponsorLink = button.closest('a[rel*="sponsored"]') || (button.tagName === 'A' && button.rel && button.rel.includes('sponsored') ? button : null);
   if (sponsorLink) {
     trackAffiliateClick(sponsorLink.textContent.trim() || 'Partner', sponsorLink.href);
+  }
+
+  if (button.id === 'theme-toggle' || button.closest('#theme-toggle')) {
+    e.preventDefault();
+    const result = toggleTheme();
+    toast(result.effectiveTheme === 'dark' ? 'Dark theme enabled' : 'Light theme enabled');
+    return;
+  }
+
+  if (button.id === 'btn-next-tip' || button.closest('#btn-next-tip')) {
+    e.preventDefault();
+    currentTipIndex = (currentTipIndex + 1) % colorDesignTips.length;
+    renderDesignTips();
+    return;
+  }
+
+  if (button.hasAttribute('data-tip-index')) {
+    e.preventDefault();
+    currentTipIndex = parseInt(button.getAttribute('data-tip-index'), 10) || 0;
+    renderDesignTips();
+    return;
   }
 
   if (button.id === 'toggle-consent') {
@@ -1728,6 +1846,12 @@ document.addEventListener('click', e => {
     return;
   }
 
+  if (button.dataset.shareImage) {
+    const p = getPalette(button.dataset.shareImage);
+    if (p) openShareImageModal(p);
+    return;
+  }
+
   if (button.dataset.download) {
     downloadPalette(button.dataset.download);
     return;
@@ -1781,20 +1905,6 @@ document.addEventListener('click', e => {
     menu.hidden = !menu.hidden;
     button.setAttribute('aria-expanded', String(!menu.hidden));
     closeSearch();
-    return;
-  }
-
-  if (button.id === 'bookmark') {
-    showDialog(
-      'Bookmark PS color',
-      `<p>Add PS color to your browser bookmarks for instant palette inspiration whenever you need it.</p>
-       <div class="keyboard-shortcut">
-         <kbd>${navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>
-         <span>+</span>
-         <kbd>D</kbd>
-       </div>
-       <p class="storage-note">On mobile, tap your browser menu and choose "Add to Home Screen" or "Bookmark".</p>`
-    );
     return;
   }
 
@@ -1884,10 +1994,6 @@ document.addEventListener('keydown', e => {
   if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && !dialog.open) {
     e.preventDefault();
     search.focus();
-  }
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
-    const bookmarkBtn = document.querySelector('#bookmark');
-    if (bookmarkBtn) bookmarkBtn.click();
   }
 });
 

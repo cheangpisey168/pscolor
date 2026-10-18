@@ -13,13 +13,14 @@
  */
 
 import { palettes } from './palettes.js';
-import { getContrast, getWcagRating, getLuminance } from './utils.js';
+import { getContrast, getWcagRating, getLuminance, copyTextToClipboard } from './utils.js';
 import {
   trackUiPreviewOpen,
   trackUiPreviewTemplateChange,
   trackUiPreviewPaletteChange,
   trackUiPreviewExport
 } from './analytics.js';
+import { openShareImageModal } from './share-image.js';
 
 export function getReadableTextColor(bgHex) {
   if (!bgHex || !/^#[0-9a-f]{6}$/i.test(bgHex)) return '#0f172a';
@@ -936,6 +937,10 @@ export class UiColorVisualizer {
                     &#8635; Reset
                   </button>
                 </div>
+                <button id="btn-visualizer-share-image" class="button button-sm full-width" type="button" title="Share current palette as high-resolution image" style="margin-top: 8px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  <span>Share as Image</span>
+                </button>
               </div>
             </div>
 
@@ -1050,12 +1055,12 @@ export class UiColorVisualizer {
     if (cssBtn) {
       cssBtn.addEventListener('click', async () => {
         const snippet = generateRoleCssSnippet(this.roles, this.colors);
-        try {
-          await navigator.clipboard.writeText(snippet);
+        const res = await copyTextToClipboard(snippet);
+        if (res.success) {
           window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Copied UI CSS variables to clipboard' }));
           trackUiPreviewExport('css', this.palette?.id);
-        } catch {
-          window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Unable to write to clipboard' }));
+        } else {
+          window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Unable to write to clipboard. Please check clipboard permissions or copy manually.' }));
         }
       });
     }
@@ -1064,12 +1069,12 @@ export class UiColorVisualizer {
     if (tailwindBtn) {
       tailwindBtn.addEventListener('click', async () => {
         const snippet = generateRoleTailwindSnippet(this.roles);
-        try {
-          await navigator.clipboard.writeText(snippet);
+        const res = await copyTextToClipboard(snippet);
+        if (res.success) {
           window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Copied UI Tailwind configuration' }));
           trackUiPreviewExport('tailwind', this.palette?.id);
-        } catch {
-          window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Unable to write to clipboard' }));
+        } else {
+          window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Unable to write to clipboard. Please check clipboard permissions or copy manually.' }));
         }
       });
     }
@@ -1078,13 +1083,23 @@ export class UiColorVisualizer {
     if (figmaBtn) {
       figmaBtn.addEventListener('click', async () => {
         const snippet = generateRoleFigmaSnippet(this.roles);
-        try {
-          await navigator.clipboard.writeText(snippet);
+        const res = await copyTextToClipboard(snippet);
+        if (res.success) {
           window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Copied UI Figma tokens JSON' }));
           trackUiPreviewExport('figma', this.palette?.id);
-        } catch {
-          window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Unable to write to clipboard' }));
+        } else {
+          window.dispatchEvent(new CustomEvent('ps-color-toast', { detail: 'Unable to write to clipboard. Please check clipboard permissions or copy manually.' }));
         }
+      });
+    }
+
+    const shareImgBtn = document.querySelector('#btn-visualizer-share-image');
+    if (shareImgBtn) {
+      shareImgBtn.addEventListener('click', () => {
+        openShareImageModal(this.palette, {
+          colors: this.colors,
+          title: 'PS Color Visualizer Theme'
+        });
       });
     }
   }

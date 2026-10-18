@@ -385,3 +385,53 @@ export function trackUiPreviewExport(exportType, paletteId) {
   });
 }
 
+/**
+ * Track Share as Image Studio Open (Phase 2)
+ */
+export function trackShareImageOpen(paletteId) {
+  trackEvent('share_image_open', {
+    palette_id: paletteId || 'unknown'
+  });
+}
+
+/**
+ * Track Share as Image Export / Download / Copy / Share (Phase 2)
+ */
+export function trackShareImageExport(paletteId, template, dimensions, method) {
+  trackEvent('share_image_export', {
+    palette_id: paletteId || 'unknown',
+    template: template || 'minimal',
+    dimensions: dimensions || '1080x1080',
+    method: method || 'download'
+  });
+}
+
+/**
+ * Track Share Image Template Change
+ */
+export function trackShareImageTemplateChange(template) {
+  trackEvent('share_image_template_change', {
+    template: template || 'minimal'
+  });
+}
+
+/**
+ * Track Share Image Dimension Change
+ */
+export function trackShareImageDimensionChange(dimensions) {
+  trackEvent('share_image_dimension_change', {
+    dimensions: dimensions || '1080x1080'
+  });
+}
+
+/**
+ * Track Theme Preference Change
+ */
+export function trackThemeChange(preference, effectiveTheme) {
+  trackEvent('theme_change', {
+    theme_preference: preference,
+    effective_theme: effectiveTheme
+  });
+}
+
+
