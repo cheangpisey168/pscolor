@@ -31,6 +31,7 @@ await page.addInitScript(() => {
   window.addEventListener('ps-color-analytics', e => {
     window.__analyticsEvents.push(e.detail);
   });
+  localStorage.setItem('ps-color-analytics-consent', 'granted');
 });
 
 const base = process.env.TEST_URL || 'http://localhost:5173';

@@ -22,12 +22,22 @@ import {
   trackAffiliateClick,
   trackEvent,
   hasUserConsent,
-  setAnalyticsConsent
+  hasAdConsent,
+  setAnalyticsConsent,
+  setAdvertisingConsent,
+  setAllConsent,
+  withdrawAllConsent,
+  purgeTrackingCookies,
+  initTcfConsentSync
 } from './analytics.js';
 
 import { updateSeo, generatePaletteSvgUrl } from './seo.js';
 
-initAnalytics();
+// Basic Consent Mode: only initialize GA4 if explicit consent has already been granted
+if (hasUserConsent()) {
+  initAnalytics();
+}
+initTcfConsentSync();
 
 export {
   monetizationConfig,
@@ -1389,7 +1399,9 @@ function renderTermsPage() {
 }
 
 function renderPrivacyPage() {
-  const consent = hasUserConsent();
+  const analyticsConsent = hasUserConsent();
+  const adConsent = hasAdConsent();
+
   document.querySelector('#content').innerHTML = `
     <div class="content-page">
       <a class="back" href="/" data-route="/">← Back to palettes</a>
@@ -1416,13 +1428,47 @@ function renderPrivacyPage() {
 
       <h2>3. Cookies & Consent Management (GDPR & ePrivacy)</h2>
       <p>For visitors residing in the European Economic Area (EEA), United Kingdom, and Switzerland:</p>
-      <p>We deploy Google-certified Consent Management Platform (CMP) standards compliant with the IAB Europe Transparency and Consent Framework (TCF v2.2). Non-essential cookies and personalized ad targeting are only loaded following affirmative user consent. You can modify your preferences at any time using our Cookie Preferences dialog or the telemetry toggle below.</p>
+      <p>We deploy Google-certified Consent Management Platform (CMP) standards compliant with the IAB Europe Transparency and Consent Framework (TCF v2.2) and Google Consent Mode v2. Non-essential cookies and personalized ad targeting are only loaded following affirmative user consent. You can modify your preferences at any time using our Cookie Preferences dialog or the controls below.</p>
 
-      <div style="margin: 24px 0; padding: 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-card);">
-        <h3 style="margin: 0 0 8px 0; font-size: 15px;">Anonymous Telemetry &amp; Cookie Preferences</h3>
-        <p style="margin: 0 0 12px 0; font-size: 13px;">Manage whether anonymous aggregated telemetry is shared to help improve palette search and performance. We strictly honor browser Do Not Track (DNT) signals.</p>
-        <p style="margin: 0 0 14px 0;"><strong>Telemetry Status:</strong> <span id="consent-status-text" style="font-weight: 600;">${consent ? 'Active (Anonymous Aggregate)' : 'Disabled / Opted Out'}</span></p>
-        <button id="toggle-consent" class="button">${consent ? 'Disable Anonymous Telemetry' : 'Enable Anonymous Telemetry'}</button>
+      <div style="margin: 24px 0; padding: 20px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 16px;">
+        <h3 style="margin: 0; font-size: 16px;">Granular Cookie &amp; Telemetry Preferences</h3>
+        
+        <div style="padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-btn); background: var(--bg-base);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong>Essential Browser Storage (LocalStorage)</strong>
+              <p style="margin: 4px 0 0; font-size: 12.5px; color: var(--text-muted);">Required for saving custom palettes and local favorites. Zero network transmission.</p>
+            </div>
+            <span style="font-size: 12.5px; font-weight: 600; color: #16a34a; background: rgba(34,197,94,0.1); padding: 4px 8px; border-radius: 4px;">Always Active (Essential)</span>
+          </div>
+        </div>
+
+        <div style="padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-btn); background: var(--bg-base);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong>Anonymous Telemetry &amp; Performance (GA4)</strong>
+              <p style="margin: 4px 0 0; font-size: 12.5px; color: var(--text-muted);">Helps improve search relevance and monitor application errors. Honors DNT/GPC headers.</p>
+              <p style="margin: 4px 0 0; font-size: 12.5px;"><strong>Status:</strong> <span id="consent-status-text" style="font-weight: 600;">${analyticsConsent ? 'Active (Anonymous Aggregate)' : 'Disabled / Opted Out'}</span></p>
+            </div>
+            <button id="toggle-consent" class="button">${analyticsConsent ? 'Disable Telemetry' : 'Enable Telemetry'}</button>
+          </div>
+        </div>
+
+        <div style="padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-btn); background: var(--bg-base);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong>Advertising &amp; Personalization Cookies</strong>
+              <p style="margin: 4px 0 0; font-size: 12.5px; color: var(--text-muted);">Supports digital advertising partners (Google AdSense) and affiliate links to keep PS Color 100% free.</p>
+              <p style="margin: 4px 0 0; font-size: 12.5px;"><strong>Status:</strong> <span id="ad-consent-status-text" style="font-weight: 600;">${adConsent ? 'Active (Personalized / Partner Ads)' : 'Disabled / Non-Personalized Only'}</span></p>
+            </div>
+            <button id="toggle-ad-consent" class="button">${adConsent ? 'Disable Ad Personalization' : 'Enable Ad Personalization'}</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px;">
+          <button id="reopen-google-cmp" class="button primary">Manage European Regulations (GDPR) Ad Consent</button>
+          <button id="withdraw-all-consent" class="button">Withdraw All Non-Essential Consent</button>
+        </div>
       </div>
 
       <h2>4. California Consumer Privacy Act (CCPA / CPRA)</h2>
@@ -1507,6 +1553,34 @@ document.addEventListener('click', e => {
     setAnalyticsConsent(!current);
     renderPrivacyPage();
     toast(!current ? 'Anonymous telemetry enabled' : 'Anonymous telemetry disabled');
+    return;
+  }
+
+  if (button.id === 'toggle-ad-consent') {
+    const current = hasAdConsent();
+    setAdvertisingConsent(!current);
+    renderPrivacyPage();
+    toast(!current ? 'Advertising & partner features enabled' : 'Advertising & partner features disabled');
+    return;
+  }
+
+  if (button.id === 'reopen-google-cmp') {
+    if (window.googlefc && typeof window.googlefc.showRevocationMessage === 'function') {
+      try {
+        window.googlefc.showRevocationMessage();
+      } catch (err) {
+        toast('Could not open European consent message at this time.');
+      }
+    } else {
+      toast('Google CMP operates in EEA/UK regions. Use Google My Ad Center for global ad controls.');
+    }
+    return;
+  }
+
+  if (button.id === 'withdraw-all-consent') {
+    withdrawAllConsent();
+    renderPrivacyPage();
+    toast('All non-essential consent withdrawn & cookies cleared');
     return;
   }
 
@@ -1627,7 +1701,7 @@ document.addEventListener('click', e => {
 
   if (button.hasAttribute('data-cookie-settings')) {
     closeMenu();
-    navigate('/privacy');
+    openCookiePreferences();
     return;
   }
 
@@ -1773,37 +1847,67 @@ dialog.addEventListener('click', e => {
   }
 });
 
+function openCookiePreferences() {
+  if (window.googlefc && typeof window.googlefc.showRevocationMessage === 'function') {
+    try {
+      window.googlefc.showRevocationMessage();
+      return;
+    } catch (err) {
+      console.warn('Google CMP revocation call failed, falling back to privacy page:', err);
+    }
+  }
+  navigate('/privacy');
+}
+
+let cookieBannerTimer = null;
+
 function renderCookieBanner() {
   if (typeof localStorage === 'undefined') return;
+  // If user already made a selection, do not display banner
   if (localStorage.getItem('ps-color-analytics-consent') !== null) return;
   if (document.querySelector('#cookie-banner')) return;
 
-  const banner = document.createElement('aside');
-  banner.id = 'cookie-banner';
-  banner.setAttribute('role', 'region');
-  banner.setAttribute('aria-label', 'Cookie and privacy consent');
-  banner.innerHTML = `
-    <h3>Cookie &amp; Privacy Preferences</h3>
-    <p>PS color uses essential browser storage to preserve your curated color collections and custom palettes. We also use privacy-first aggregate metrics and advertising partner features to keep this resource 100% free. You can customize your preferences anytime.</p>
-    <div class="cookie-actions">
-      <button id="cookie-accept" class="button primary">Accept All</button>
-      <button id="cookie-essential" class="button">Essential Only</button>
-      <a href="/privacy" data-route="/privacy" class="button" style="text-align:center; display:flex; align-items:center; justify-content:center;">Read Policy</a>
-    </div>
-  `;
-  document.body.appendChild(banner);
+  // Give Google Certified CMP (AdSense / Funding Choices) time to check IP and show TCF UI if in EEA/UK
+  if (cookieBannerTimer) clearTimeout(cookieBannerTimer);
+  cookieBannerTimer = setTimeout(() => {
+    if (localStorage.getItem('ps-color-analytics-consent') !== null) return;
+    if (window.googlefc || (window.__tcfapi && window.__tcfActive)) return;
+    if (document.querySelector('#cookie-banner')) return;
 
-  banner.querySelector('#cookie-accept').addEventListener('click', () => {
-    setAnalyticsConsent(true);
-    initAnalytics();
-    banner.remove();
-  });
+    const banner = document.createElement('aside');
+    banner.id = 'cookie-banner';
+    banner.setAttribute('role', 'region');
+    banner.setAttribute('aria-label', 'Cookie and privacy consent preferences');
+    banner.innerHTML = `
+      <h3>Cookie &amp; Privacy Preferences</h3>
+      <p>PS color uses local browser storage for your palettes. We also use privacy-first analytics and partner features to keep this resource 100% free. You can accept all or customize your preferences.</p>
+      <div class="cookie-actions">
+        <button id="cookie-accept" class="button primary">Accept All</button>
+        <button id="cookie-essential" class="button">Essential Only</button>
+        <a href="/privacy" data-route="/privacy" class="button" style="text-align:center; display:flex; align-items:center; justify-content:center;">Preferences</a>
+      </div>
+    `;
+    document.body.appendChild(banner);
 
-  banner.querySelector('#cookie-essential').addEventListener('click', () => {
-    setAnalyticsConsent(false);
-    banner.remove();
-  });
+    banner.querySelector('#cookie-accept').addEventListener('click', () => {
+      setAllConsent({ analytics: true, advertising: true });
+      banner.remove();
+    });
+
+    banner.querySelector('#cookie-essential').addEventListener('click', () => {
+      setAllConsent({ analytics: false, advertising: false });
+      banner.remove();
+    });
+  }, 400);
 }
+
+// When Google CMP UI is shown or TCF signals active compliance, dismiss custom banner immediately
+window.addEventListener('ps-color-tcf-active', () => {
+  window.__tcfActive = true;
+  if (cookieBannerTimer) clearTimeout(cookieBannerTimer);
+  const banner = document.querySelector('#cookie-banner');
+  if (banner) banner.remove();
+});
 
 window.addEventListener('popstate', route);
 window.addEventListener('storage', () => {
