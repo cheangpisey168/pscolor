@@ -32,6 +32,7 @@ import {
 } from './analytics.js';
 
 import { updateSeo, generatePaletteSvgUrl } from './seo.js';
+import { UiColorVisualizer } from './visualizer.js';
 
 // Basic Consent Mode: only initialize GA4 if explicit consent has already been granted
 if (hasUserConsent()) {
@@ -183,7 +184,7 @@ function hexToRgbStr(hex) {
 
 // APP STRUCTURE WITH NEW PS COLOR BRAND LOGO
 document.querySelector('#app').innerHTML = `
-  <header>
+  <header class="site-header">
     <div class="header-inner wrap">
       <a class="brand left logo" href="/" data-route="/" aria-label="PS color home">
         <img class="logo-icon" src="/img/ps-color-logo.svg" alt="PS color icon" width="36" height="36">
@@ -208,6 +209,7 @@ document.querySelector('#app').innerHTML = `
         </button>
         <nav id="menu" class="dropdown" hidden>
           <a href="/" data-route="/">Palettes</a>
+          <a href="/visualizer" data-route="/visualizer">Live UI Visualizer</a>
           <a href="/create" data-route="/create">Create & Extract</a>
           <a href="/collection" data-route="/collection">My Collection</a>
           <div class="line"></div>
@@ -259,6 +261,7 @@ document.querySelector('#app').innerHTML = `
             <li><a href="/" data-route="/">Newest Palettes</a></li>
             <li><a href="/popular" data-route="/popular">Popular Trends</a></li>
             <li><a href="/random" data-route="/random">Random Inspiration</a></li>
+            <li><a href="/visualizer" data-route="/visualizer">Live UI Visualizer</a></li>
             <li><a href="/create" data-route="/create">Create & Extract</a></li>
             <li><a href="/collection" data-route="/collection">Saved Collection</a></li>
           </ul>
@@ -306,6 +309,7 @@ function renderNavigation() {
     ['new', 'New', 'new', '/'],
     ['popular', 'Popular', 'popular', '/popular'],
     ['random', 'Random', 'random', '/random'],
+    ['visualizer', 'Visualizer', 'sparkle', '/visualizer'],
     ['collection', 'Collection', 'heart', '/collection']
   ];
 
@@ -345,10 +349,16 @@ function card(p) {
     <article class="palette-card" data-id="${p.id}">
       ${paletteMarkup(p)}
       <div class="card-bottom">
-        <button class="button like ${liked ? 'liked' : ''}" data-like="${p.id}" aria-label="${liked ? 'Remove palette from' : 'Save palette to'} collection" aria-pressed="${liked}">
-          ${icon('heart')}
-          <span>${compact(p.likes + (liked ? 1 : 0))}</span>
-        </button>
+        <div class="card-actions">
+          <button class="button like ${liked ? 'liked' : ''}" data-like="${p.id}" aria-label="${liked ? 'Remove palette from' : 'Save palette to'} collection" aria-pressed="${liked}">
+            ${icon('heart')}
+            <span>${compact(p.likes + (liked ? 1 : 0))}</span>
+          </button>
+          <a href="/visualizer/${p.id}" data-route="/visualizer/${p.id}" class="card-preview-btn" aria-label="Preview palette ${p.colors.join(', ')} on UI" title="Preview on UI">
+            ${icon('sparkle')}
+            <span>Preview</span>
+          </a>
+        </div>
         <span class="date">${age(p.days)}</span>
       </div>
     </article>
@@ -405,7 +415,7 @@ function filtered() {
 }
 
 function renderMeta() {
-  if (['about', 'contact', 'terms', 'privacy', 'create'].includes(mode)) {
+  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer'].includes(mode)) {
     document.querySelector('#meta').innerHTML = '';
     return;
   }
@@ -593,7 +603,7 @@ function route() {
     (path[1] || '').split('-').filter(t => tagsBank.some(item => item.tag === t.toLowerCase())) :
     [];
 
-  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'contact', 'terms', 'privacy'].includes(root) ? root : 'new';
+  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'contact', 'terms', 'privacy', 'visualizer'].includes(root) ? root : 'new';
   query = '';
   limit = 36;
 
@@ -602,8 +612,16 @@ function route() {
   updateSearch();
   renderNavigation();
 
+  if (root === 'visualizer') {
+    document.body.classList.add('is-visualizer-mode');
+  } else {
+    document.body.classList.remove('is-visualizer-mode');
+  }
+
   if (root === 'palette') {
     renderDetail(path[1]);
+  } else if (root === 'visualizer') {
+    renderVisualizer(path[1]);
   } else if (root === 'create') {
     renderCreator();
   } else if (root === 'about') {
@@ -802,6 +820,10 @@ function renderDetail(id) {
       <a class="back" href="/" data-route="/">← Back to palettes</a>
       ${paletteMarkup(p)}
       <div class="detail-actions">
+        <a href="/visualizer/${p.id}" data-route="/visualizer/${p.id}" class="button primary preview-ui-btn" id="preview-on-ui-btn">
+          ${icon('sparkle')}
+          <span>Preview on UI</span>
+        </a>
         <button class="button like ${liked ? 'liked' : ''}" data-like="${p.id}" aria-pressed="${liked}">
           ${icon('heart')}
           <span>${liked ? 'Saved' : 'Save'}</span>
@@ -933,6 +955,32 @@ function showDialog(title, body) {
     ${body}
   `;
   dialog.showModal();
+}
+
+let activeVisualizerInstance = null;
+
+function renderVisualizer(id) {
+  let p = id ? getPalette(id) : null;
+  if (!p) {
+    p = palettes[0];
+  }
+
+  activeVisualizerInstance = new UiColorVisualizer(p, {
+    template: 'landing',
+    viewport: 'desktop',
+    previousRoute: id ? `/palette/${id}` : '/'
+  });
+
+  document.querySelector('#content').innerHTML = activeVisualizerInstance.render();
+  activeVisualizerInstance.attachListeners();
+  renderMeta();
+
+  updateSeo({
+    title: `Live UI Color Visualizer — Palette ${p.colors.join(' ')}`,
+    description: `Preview palette ${p.colors.join(', ')} live on realistic website components. Test WCAG contrast and export Tailwind & CSS variables.`,
+    path: `/visualizer/${p.id}`,
+    image: generatePaletteSvgUrl(p.colors)
+  });
 }
 
 // IMAGE EXTRACTOR HELPER
@@ -1488,6 +1536,7 @@ function renderPrivacyPage() {
 window.addEventListener('scroll', () => {
   if (['new', 'popular', 'random', 'collection'].includes(mode) &&
       !location.pathname.startsWith('/palette/') &&
+      !location.pathname.startsWith('/visualizer') &&
       !location.pathname.startsWith('/create') &&
       !location.pathname.startsWith('/about') &&
       !location.pathname.startsWith('/contact') &&
@@ -1954,6 +2003,9 @@ window.addEventListener('popstate', route);
 window.addEventListener('storage', () => {
   saved = getSavedSet();
   route();
+});
+window.addEventListener('ps-color-toast', e => {
+  if (e.detail) toast(e.detail);
 });
 
 route();

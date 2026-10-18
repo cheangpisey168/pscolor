@@ -30,8 +30,20 @@ export const monetizationConfig = {
 };
 
 // WCAG 2.1 MATHEMATICAL CONTRAST CALCULATION
-export function getLuminance(r, g, b) {
-  const [rs, gs, bs] = [r, g, b].map(c => {
+export function getLuminance(rOrHex, g, b) {
+  let red, green, blue;
+  if (typeof rOrHex === 'string') {
+    const clean = rOrHex.replace('#', '');
+    const num = parseInt(clean, 16);
+    red = (num >> 16) & 255;
+    green = (num >> 8) & 255;
+    blue = num & 255;
+  } else {
+    red = rOrHex;
+    green = g;
+    blue = b;
+  }
+  const [rs, gs, bs] = [red, green, blue].map(c => {
     c = c / 255;
     return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   });

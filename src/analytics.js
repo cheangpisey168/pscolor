@@ -346,3 +346,42 @@ export function trackContactSubmit(topic) {
     topic: topic || 'general'
   });
 }
+
+/**
+ * Track Live UI Visualizer Open
+ */
+export function trackUiPreviewOpen(paletteId, template) {
+  trackEvent('ui_preview_open', {
+    palette_id: paletteId || 'default',
+    template: template || 'landing'
+  });
+}
+
+/**
+ * Track Visualizer Template Switch
+ */
+export function trackUiPreviewTemplateChange(template) {
+  trackEvent('ui_preview_template_change', {
+    template: template || 'landing'
+  });
+}
+
+/**
+ * Track Visualizer Palette Switch
+ */
+export function trackUiPreviewPaletteChange(paletteId) {
+  trackEvent('ui_preview_palette_change', {
+    palette_id: paletteId || 'unknown'
+  });
+}
+
+/**
+ * Track Visualizer Theme / Token Export
+ */
+export function trackUiPreviewExport(exportType, paletteId) {
+  trackEvent('ui_preview_export', {
+    export_type: exportType,
+    palette_id: paletteId || 'unknown'
+  });
+}
+

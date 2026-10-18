@@ -62,6 +62,7 @@ const sitemapUrls = [
   { loc: `${SITE_URL}/`, changefreq: 'daily', priority: '1.0' },
   { loc: `${SITE_URL}/popular/`, changefreq: 'daily', priority: '0.9' },
   { loc: `${SITE_URL}/random/`, changefreq: 'daily', priority: '0.8' },
+  { loc: `${SITE_URL}/visualizer/`, changefreq: 'weekly', priority: '0.9' },
   { loc: `${SITE_URL}/create/`, changefreq: 'weekly', priority: '0.8' },
   { loc: `${SITE_URL}/about/`, changefreq: 'monthly', priority: '0.5' },
   { loc: `${SITE_URL}/contact/`, changefreq: 'monthly', priority: '0.5' },
@@ -273,6 +274,28 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
     title: 'Create & Extract Color Palettes',
     description: 'Design custom 4-color palettes or extract dominant color harmonies instantly from photos (PNG, JPG, WebP) in your browser.',
     bodyContent: '<div class="creator"><h1>Create & Extract Color Palettes</h1><p>Build custom four-color schemes or extract palettes directly from any photo.</p></div>'
+  });
+
+  renderPage({
+    path: '/visualizer/',
+    title: 'Live UI Color Visualizer — Preview Palettes on Websites',
+    description: 'Preview color schemes interactively on realistic website templates including Landing Pages, SaaS Dashboards, and E-Commerce storefronts with WCAG accessibility checks and instant code export.',
+    bodyContent: `
+      <article class="content-page" style="max-width:960px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;line-height:1.6;">
+        <h1 style="font-size:32px;color:#0f172a;margin-bottom:12px;">Live UI Color Visualizer</h1>
+        <p style="font-size:16px;color:#475569;margin-bottom:24px;">Test color palettes instantly in realistic website layouts. Preview full design systems across SaaS dashboard analytics, marketing landing pages, and modern e-commerce storefronts.</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:24px;">
+          <h2 style="font-size:20px;color:#0f172a;margin-bottom:14px;">Key Capabilities</h2>
+          <ul style="line-height:1.8;padding-left:20px;">
+            <li><strong>Responsive Templates:</strong> Switch effortlessly between Landing Page, SaaS Analytics Dashboard, and E-Commerce Storefront.</li>
+            <li><strong>Semantic Color Mapping:</strong> Assign Primary, Secondary, Accent, Background, Surface, and Text roles.</li>
+            <li><strong>Device Simulation:</strong> Toggle between Desktop widescreen and Mobile Phone viewports.</li>
+            <li><strong>WCAG 2.1 Contrast Scorecard:</strong> Real-time automated accessibility feedback ensuring legible typography and WCAG AA/AAA compliance.</li>
+            <li><strong>Instant Developer Tokens:</strong> One-click export for CSS Custom Properties (:root) and Tailwind CSS configuration tokens.</li>
+          </ul>
+        </div>
+      </article>
+    `
   });
 
   renderPage({
