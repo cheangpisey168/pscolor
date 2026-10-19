@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { palettes, categories, tagsBank } from '../src/palettes.js';
+import { GUIDES_DATA, renderGuidesIndexHtml, renderGuideArticleHtml } from '../src/guides.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,7 +23,7 @@ function getLuminance(hex) {
   const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
   const [rs, gs, bs] = [r, g, b].map(c => {
     c = c / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   });
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
@@ -64,6 +65,10 @@ const sitemapUrls = [
   { loc: `${SITE_URL}/random/`, changefreq: 'daily', priority: '0.8' },
   { loc: `${SITE_URL}/visualizer/`, changefreq: 'weekly', priority: '0.9' },
   { loc: `${SITE_URL}/gradient/`, changefreq: 'weekly', priority: '0.9' },
+  { loc: `${SITE_URL}/guides/`, changefreq: 'weekly', priority: '0.8' },
+  { loc: `${SITE_URL}/guides/how-to-create-css-gradients/`, changefreq: 'monthly', priority: '0.8' },
+  { loc: `${SITE_URL}/guides/how-to-choose-colors-for-a-website/`, changefreq: 'monthly', priority: '0.8' },
+  { loc: `${SITE_URL}/guides/understanding-color-contrast-and-wcag/`, changefreq: 'monthly', priority: '0.8' },
   { loc: `${SITE_URL}/create/`, changefreq: 'weekly', priority: '0.8' },
   { loc: `${SITE_URL}/about/`, changefreq: 'monthly', priority: '0.5' },
   { loc: `${SITE_URL}/contact/`, changefreq: 'monthly', priority: '0.5' },
@@ -357,6 +362,50 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
       </article>
     `
   });
+
+  // Color Guides Index
+  renderPage({
+    path: '/guides/',
+    title: 'Color & Web Design Guides — Tutorials, CSS & WCAG Accessibility',
+    description: 'Learn color theory, CSS gradient syntax, WCAG 2.1 accessibility math, and design system tokens with comprehensive educational guides from PS Color.',
+    bodyContent: renderGuidesIndexHtml()
+  });
+
+  // Individual Guide Articles
+  for (const guide of GUIDES_DATA) {
+    renderPage({
+      path: `/guides/${guide.slug}/`,
+      title: guide.title,
+      description: guide.description,
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'TechArticle',
+        'headline': guide.title,
+        'description': guide.description,
+        'author': {
+          '@type': 'Organization',
+          'name': 'PS color',
+          'url': SITE_URL
+        },
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'PS color',
+          'url': SITE_URL,
+          'logo': {
+            '@type': 'ImageObject',
+            'url': `${SITE_URL}/img/ps-color-logo.svg`
+          }
+        },
+        'datePublished': guide.isoDate,
+        'dateModified': guide.isoDate,
+        'mainEntityOfPage': {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/guides/${guide.slug}/`
+        }
+      },
+      bodyContent: renderGuideArticleHtml(guide)
+    });
+  }
 
   renderPage({
     path: '/popular/',

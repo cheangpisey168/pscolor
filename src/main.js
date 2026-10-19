@@ -51,6 +51,13 @@ import {
 } from './gradient.js';
 
 import {
+  getGuide,
+  renderGuidesIndexHtml,
+  renderGuideArticleHtml,
+  attachGuidesListeners
+} from './guides.js';
+
+import {
   initCollections,
   getCollections,
   getCollection,
@@ -110,7 +117,8 @@ const icons = {
   upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
   sparkle: '<path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/>',
   image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
-  gradient: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9"/>'
+  gradient: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9"/>',
+  book: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 2v20"/>'
 };
 
 const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.new}</svg>`;
@@ -256,6 +264,7 @@ document.querySelector('#app').innerHTML = `
           <a href="/" data-route="/">Palettes</a>
           <a href="/visualizer" data-route="/visualizer">Live UI Visualizer</a>
           <a href="/gradient" data-route="/gradient">Gradient Generator</a>
+          <a href="/guides" data-route="/guides">Color Guides</a>
           <a href="/create" data-route="/create">Create & Extract</a>
           <a href="/collection" data-route="/collection">My Collection</a>
           <div class="line"></div>
@@ -303,6 +312,7 @@ document.querySelector('#app').innerHTML = `
             <li><a href="/random" data-route="/random">Random Inspiration</a></li>
             <li><a href="/visualizer" data-route="/visualizer">Live UI Visualizer</a></li>
             <li><a href="/gradient" data-route="/gradient">Gradient Generator</a></li>
+            <li><a href="/guides" data-route="/guides">Color Guides</a></li>
             <li><a href="/create" data-route="/create">Create & Extract</a></li>
             <li><a href="/collection" data-route="/collection">Saved Collection</a></li>
           </ul>
@@ -354,6 +364,7 @@ function renderNavigation() {
     ['random', 'Random', 'random', '/random'],
     ['visualizer', 'Visualizer', 'sparkle', '/visualizer'],
     ['gradient', 'Gradients', 'gradient', '/gradient'],
+    ['guides', 'Guides', 'book', '/guides'],
     ['collection', 'Collection', 'heart', '/collection']
   ];
 
@@ -495,7 +506,7 @@ function renderDesignTips() {
   const container = document.querySelector('#design-tips');
   if (!container) return;
 
-  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer', 'gradient'].includes(mode)) {
+  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer', 'gradient', 'guides'].includes(mode)) {
     container.innerHTML = '';
     container.hidden = true;
     return;
@@ -607,7 +618,7 @@ function renderCollectionHeader() {
 }
 
 function renderMeta() {
-  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer', 'gradient'].includes(mode)) {
+  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer', 'gradient', 'guides'].includes(mode)) {
     document.querySelector('#meta').innerHTML = '';
     const tips = document.querySelector('#design-tips');
     if (tips) {
@@ -808,7 +819,7 @@ function route() {
     (path[1] || '').split('-').filter(t => tagsBank.some(item => item.tag === t.toLowerCase())) :
     [];
 
-  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'contact', 'terms', 'privacy', 'visualizer', 'gradient'].includes(root) ? root : 'new';
+  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'contact', 'terms', 'privacy', 'visualizer', 'gradient', 'guides'].includes(root) ? root : 'new';
   query = '';
   limit = 36;
 
@@ -829,12 +840,20 @@ function route() {
     document.body.classList.remove('is-gradient-mode');
   }
 
+  if (root === 'guides') {
+    document.body.classList.add('is-guides-mode');
+  } else {
+    document.body.classList.remove('is-guides-mode');
+  }
+
   if (root === 'palette') {
     renderDetail(path[1]);
   } else if (root === 'visualizer') {
     renderVisualizer(path[1]);
   } else if (root === 'gradient') {
     renderGradientPage(path[1]);
+  } else if (root === 'guides') {
+    renderGuidesPage(path[1]);
   } else if (root === 'create') {
     renderCreator();
   } else if (root === 'about') {
@@ -887,6 +906,49 @@ function route() {
       description: 'Create beautiful, customizable CSS linear, radial, and conic gradients. Customize color stops, copy production-ready CSS code, and download high-resolution PNGs.',
       path: '/gradient/'
     });
+  } else if (root === 'guides') {
+    const guideSlug = path[1];
+    const guide = guideSlug ? getGuide(guideSlug) : null;
+    if (guide) {
+      updateSeo({
+        title: guide.title,
+        description: guide.description,
+        path: `/guides/${guide.slug}/`,
+        type: 'article',
+        structuredData: {
+          '@context': 'https://schema.org',
+          '@type': 'TechArticle',
+          'headline': guide.title,
+          'description': guide.description,
+          'author': {
+            '@type': 'Organization',
+            'name': 'PS color',
+            'url': 'https://www.pscolor.online'
+          },
+          'publisher': {
+            '@type': 'Organization',
+            'name': 'PS color',
+            'url': 'https://www.pscolor.online',
+            'logo': {
+              '@type': 'ImageObject',
+              'url': 'https://www.pscolor.online/img/ps-color-logo.svg'
+            }
+          },
+          'datePublished': guide.isoDate,
+          'dateModified': guide.isoDate,
+          'mainEntityOfPage': {
+            '@type': 'WebPage',
+            '@id': `https://www.pscolor.online/guides/${guide.slug}/`
+          }
+        }
+      });
+    } else {
+      updateSeo({
+        title: 'Color & Web Design Guides — Tutorials, CSS & WCAG Accessibility',
+        description: 'Learn color theory, CSS gradient syntax, WCAG 2.1 accessibility math, and design system tokens with comprehensive educational guides from PS Color.',
+        path: '/guides/'
+      });
+    }
   } else if (root === 'create') {
     updateSeo({
       title: 'Create & Extract Color Palettes',
@@ -1262,6 +1324,25 @@ function renderGradientPage(paletteIdParam) {
     description: 'Create beautiful, customizable CSS linear, radial, and conic gradients. Customize color stops, copy production-ready CSS code, and download high-resolution PNGs.',
     path: '/gradient/'
   });
+}
+
+function renderGuidesPage(slug) {
+  const contentEl = document.querySelector('#content');
+  if (!contentEl) return;
+
+  if (slug) {
+    const guide = getGuide(slug);
+    if (guide) {
+      contentEl.innerHTML = renderGuideArticleHtml(guide);
+      attachGuidesListeners(contentEl);
+      renderMeta();
+      return;
+    }
+  }
+
+  contentEl.innerHTML = renderGuidesIndexHtml();
+  attachGuidesListeners(contentEl);
+  renderMeta();
 }
 
 // IMAGE EXTRACTOR HELPER
@@ -1819,6 +1900,7 @@ window.addEventListener('scroll', () => {
       !location.pathname.startsWith('/palette/') &&
       !location.pathname.startsWith('/visualizer') &&
       !location.pathname.startsWith('/gradient') &&
+      !location.pathname.startsWith('/guides') &&
       !location.pathname.startsWith('/create') &&
       !location.pathname.startsWith('/about') &&
       !location.pathname.startsWith('/contact') &&
