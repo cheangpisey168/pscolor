@@ -44,6 +44,35 @@ import {
   updateThemeControls
 } from './theme.js';
 
+import {
+  initCollections,
+  getCollections,
+  getCollection,
+  getActiveCollectionId,
+  setActiveCollectionId,
+  getActiveCollection,
+  createCollection,
+  renameCollection,
+  deleteCollection,
+  addPaletteToCollection,
+  removePaletteFromCollection,
+  togglePaletteInCollection,
+  isPaletteInCollection,
+  getCollectionsForPalette,
+  isPaletteSaved,
+  toggleQuickSave,
+  buildExportPayload,
+  validateAndParseImportJson,
+  applyImportedCollections,
+  openCreateCollectionModal,
+  openRenameCollectionModal,
+  openDeleteCollectionModal,
+  openAddToCollectionModal,
+  openImportCollectionsModal
+} from './collections.js';
+
+initCollections();
+
 // Basic Consent Mode: only initialize GA4 if explicit consent has already been granted
 if (hasUserConsent()) {
   initAnalytics();
@@ -393,7 +422,10 @@ function renderSponsorCard() {
 }
 
 function filtered() {
-  let list = mode === 'collection' ? [...saved].reverse().map(getPalette).filter(Boolean) : all();
+  const activeCol = getActiveCollection();
+  let list = mode === 'collection'
+    ? (activeCol ? [...activeCol.paletteIds].reverse().map(getPalette).filter(Boolean) : [])
+    : all();
   const searchWords = query.toLowerCase().trim().split(/[\s,]+/).filter(Boolean);
   const words = [...tags, ...searchWords];
 
@@ -490,6 +522,80 @@ function renderDesignTips() {
   `;
 }
 
+function renderCollectionHeader() {
+  const collections = getCollections();
+  const active = getActiveCollection();
+  if (!active) return '';
+
+  return `
+    <div class="collection-page-manager" id="collection-manager">
+      <div class="collection-header-main">
+        <div class="collection-title-wrap">
+          <div class="collection-title-row">
+            <h1 class="collection-page-title">${escape(active.name)}</h1>
+            <span class="collection-count-badge">${active.paletteIds.length} ${active.paletteIds.length === 1 ? 'palette' : 'palettes'}</span>
+            
+            <div class="collection-menu-wrap">
+              <button type="button" class="icon-button collection-menu-trigger" id="collection-menu-trigger" aria-label="Collection options for ${escape(active.name)}" aria-haspopup="true" aria-expanded="false" title="Collection options">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16">
+                  <circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                </svg>
+              </button>
+              <div class="dropdown collection-menu-dropdown" id="collection-menu-dropdown" hidden>
+                <button type="button" class="dropdown-item" data-rename-collection="${active.id}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  <span>Rename Collection</span>
+                </button>
+                <button type="button" class="dropdown-item" data-export-collection="${active.id}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Export JSON</span>
+                </button>
+                ${active.id !== 'favorites' ? `
+                  <div class="dropdown-divider"></div>
+                  <button type="button" class="dropdown-item danger" data-delete-collection="${active.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <span>Delete Collection</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+          ${active.description ? `<p class="collection-page-desc">${escape(active.description)}</p>` : ''}
+        </div>
+
+        <div class="collection-actions-bar">
+          <div class="collection-secondary-group">
+            <button type="button" class="button button-sm button-subtle" id="btn-import-collections" aria-label="Import collections from JSON" title="Import collections from JSON">
+              ${icon('upload')}
+              <span>Import</span>
+            </button>
+            <button type="button" class="button button-sm button-subtle" id="btn-export-all-collections" aria-label="Export all collections as JSON" title="Export all collections as JSON">
+              ${icon('download')}
+              <span>Export All</span>
+            </button>
+          </div>
+          <button type="button" class="button button-sm primary" id="btn-create-collection" aria-label="Create new collection">
+            ${icon('plus')}
+            <span>New Collection</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="collections-tabs-bar" role="tablist" aria-label="Color collections">
+        ${collections.map(col => `
+          <button type="button" class="collection-tab ${col.id === active.id ? 'active' : ''}" role="tab" aria-selected="${col.id === active.id}" data-collection-tab="${col.id}">
+            <span class="tab-name">${escape(col.name)}</span>
+            <span class="tab-pill">${col.paletteIds.length}</span>
+          </button>
+        `).join('')}
+        <button type="button" class="collection-tab-new" id="btn-tab-new-collection" title="Create new collection" aria-label="Create new collection">
+          ${icon('plus')}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderMeta() {
   if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer'].includes(mode)) {
     document.querySelector('#meta').innerHTML = '';
@@ -512,13 +618,13 @@ function renderMeta() {
     'Your favorite palettes, collected in one place.' :
     `Discover ${mode === 'popular' ? 'the most popular' : mode === 'random' ? 'curated, unexpected' : 'the newest hand-crafted'} palettes on PS color`;
 
-  document.querySelector('#meta').innerHTML = `
+  document.querySelector('#meta').innerHTML = mode === 'collection' ? '' : `
     <h1>${escape(heading)}</h1>
     <p>${escape(sub)}</p>
   `;
 
   const list = [...saved].reverse().map(getPalette).filter(Boolean);
-  document.querySelector('#collection-preview').innerHTML = list.length ? `
+  document.querySelector('#collection-preview').innerHTML = (list.length && mode !== 'collection') ? `
     <div class="line"></div>
     <a class="collection-title" href="/collection" data-route="/collection">
       <span>Collection</span>
@@ -550,20 +656,25 @@ function renderFeed(resetScroll = true) {
     return cardHtml;
   }).join('');
 
-  document.querySelector('#content').innerHTML = list.length ? `
-    <div class="feed">${cardsHtml}</div>
-    ${list.length > limit ? `
-      <div class="load-more">
-        <button class="button" id="load-more">Load more palettes</button>
+  const managerHtml = mode === 'collection' ? renderCollectionHeader() : '';
+
+  document.querySelector('#content').innerHTML = `
+    ${managerHtml}
+    ${list.length ? `
+      <div class="feed">${cardsHtml}</div>
+      ${list.length > limit ? `
+        <div class="load-more">
+          <button class="button" id="load-more">Load more palettes</button>
+        </div>
+      ` : ''}
+    ` : `
+      <div class="empty">
+        ${icon(mode === 'collection' ? 'heart' : 'search')}
+        <h2>${mode === 'collection' && !tags.length && !query ? 'Your collection starts here' : 'No palettes found'}</h2>
+        <p>${mode === 'collection' && !tags.length && !query ? 'Tap the heart on any palette to save it here.' : 'Try another color, collection, or hex code.'}</p>
+        <button class="button" data-route="/">Explore palettes</button>
       </div>
-    ` : ''}
-  ` : `
-    <div class="empty">
-      ${icon(mode === 'collection' ? 'heart' : 'search')}
-      <h2>${mode === 'collection' && !tags.length && !query ? 'Your collection starts here' : 'No palettes found'}</h2>
-      <p>${mode === 'collection' && !tags.length && !query ? 'Tap the heart on any palette to save it here.' : 'Try another color, collection, or hex code.'}</p>
-      <button class="button" data-route="/">Explore palettes</button>
-    </div>
+    `}
   `;
 
   renderMeta();
@@ -819,13 +930,16 @@ function route() {
 }
 
 function toggleLike(id) {
-  if (saved.has(id)) {
-    saved.delete(id);
-  } else {
-    saved.add(id);
-    triggerLogoPulse();
-  }
+  const res = toggleQuickSave(id);
+  saved = getSavedSet();
   persist();
+
+  if (res.added) {
+    triggerLogoPulse();
+    toast(`Saved to ${res.collectionName}`);
+  } else {
+    toast(`Removed from ${res.collectionName}`);
+  }
 
   if (location.pathname.startsWith('/palette/')) {
     renderDetail(id);
@@ -911,6 +1025,10 @@ function renderDetail(id) {
         <button class="button like ${liked ? 'liked' : ''}" data-like="${p.id}" aria-pressed="${liked}">
           ${icon('heart')}
           <span>${liked ? 'Saved' : 'Save'}</span>
+        </button>
+        <button class="button" data-collection-picker="${p.id}" id="detail-collections-btn" aria-label="Add or organize palette across collections">
+          ${icon('bookmark')}
+          <span>Collections</span>
         </button>
         <button class="button" data-share-image="${p.id}" id="detail-share-image-btn" aria-label="Share palette as high-resolution image">
           ${icon('image')}
@@ -1680,14 +1798,37 @@ search.addEventListener('keydown', e => {
   }
 });
 
+function closeCollectionMenu() {
+  const colDropdown = document.querySelector('#collection-menu-dropdown');
+  if (colDropdown && !colDropdown.hidden) {
+    colDropdown.hidden = true;
+    const trigger = document.querySelector('#collection-menu-trigger');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+}
+
 // GLOBAL CLICK DELEGATION
 document.addEventListener('click', e => {
   const button = e.target.closest('button, a, div[data-tab], .dropzone');
 
   if (!e.target.closest('.search-area')) closeSearch();
   if (!e.target.closest('#menu-toggle') && !e.target.closest('#menu')) closeMenu();
+  if (!e.target.closest('.collection-menu-wrap')) closeCollectionMenu();
 
   if (!button) return;
+
+  if (button.id === 'collection-menu-trigger' || button.closest('#collection-menu-trigger')) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropdown = document.querySelector('#collection-menu-dropdown');
+    if (dropdown) {
+      const isHidden = dropdown.hidden;
+      dropdown.hidden = !isHidden;
+      const trigger = document.querySelector('#collection-menu-trigger') || button;
+      trigger.setAttribute('aria-expanded', String(isHidden));
+    }
+    return;
+  }
 
   const sponsorLink = button.closest('a[rel*="sponsored"]') || (button.tagName === 'A' && button.rel && button.rel.includes('sponsored') ? button : null);
   if (sponsorLink) {
@@ -1862,6 +2003,88 @@ document.addEventListener('click', e => {
     return;
   }
 
+  if (button.dataset.collectionPicker) {
+    const p = getPalette(button.dataset.collectionPicker);
+    if (p) {
+      openAddToCollectionModal(dialog, p, () => {
+        saved = getSavedSet();
+        if (location.pathname.startsWith('/palette/')) {
+          renderDetail(p.id);
+        } else {
+          renderFeed(false);
+        }
+      });
+    }
+    return;
+  }
+
+  if (button.dataset.collectionTab) {
+    setActiveCollectionId(button.dataset.collectionTab);
+    renderFeed(false);
+    return;
+  }
+
+  if (button.id === 'btn-create-collection' || button.id === 'btn-tab-new-collection') {
+    openCreateCollectionModal(dialog, newCol => {
+      setActiveCollectionId(newCol.id);
+      saved = getSavedSet();
+      renderFeed(false);
+      toast(`Collection "${newCol.name}" created`);
+    });
+    return;
+  }
+
+  if (button.dataset.renameCollection) {
+    closeCollectionMenu();
+    const col = getCollection(button.dataset.renameCollection);
+    if (col) {
+      openRenameCollectionModal(dialog, col, updatedCol => {
+        renderFeed(false);
+        toast(`Collection renamed to "${updatedCol.name}"`);
+      });
+    }
+    return;
+  }
+
+  if (button.dataset.deleteCollection) {
+    closeCollectionMenu();
+    const col = getCollection(button.dataset.deleteCollection);
+    if (col) {
+      openDeleteCollectionModal(dialog, col, () => {
+        saved = getSavedSet();
+        renderFeed(false);
+        toast(`Collection "${col.name}" deleted`);
+      });
+    }
+    return;
+  }
+
+  if (button.id === 'btn-import-collections') {
+    openImportCollectionsModal(dialog, outcome => {
+      saved = getSavedSet();
+      renderFeed(false);
+      toast(`Imported ${outcome.importedCollections} collection(s) & ${outcome.importedPalettes} palette(s)`);
+    });
+    return;
+  }
+
+  if (button.dataset.exportCollection) {
+    closeCollectionMenu();
+    const col = getCollection(button.dataset.exportCollection);
+    const payload = buildExportPayload(button.dataset.exportCollection, getPalette);
+    const safeName = (col?.name || 'collection').toLowerCase().replace(/[^a-z0-9]/g, '-');
+    downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `ps-color-${safeName}.json`);
+    toast(`Exported "${col?.name || 'Collection'}"`);
+    return;
+  }
+
+  if (button.id === 'btn-export-all-collections') {
+    const payload = buildExportPayload(null, getPalette);
+    downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), 'ps-color-all-collections.json');
+    toast('Exported all collections');
+    return;
+  }
+
   if (button.hasAttribute('data-close')) {
     dialog.close();
     return;
@@ -1979,6 +2202,7 @@ document.addEventListener('submit', e => {
     custom.unshift({ id, colors, tags: ['custom'], likes: 1, days: 0 });
   }
   saved.add(id);
+  addPaletteToCollection(getActiveCollectionId(), id);
   persist();
   navigate('/palette/' + id);
   toast('Palette saved to your collection');
@@ -1990,6 +2214,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeSearch();
     closeMenu();
+    closeCollectionMenu();
   }
   if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && !dialog.open) {
     e.preventDefault();
