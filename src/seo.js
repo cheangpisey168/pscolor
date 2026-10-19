@@ -2,7 +2,7 @@
  * PS Color - Production Dynamic SEO & Structured Data Module
  */
 
-const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://www.pscolor.online').replace(/\/$/, '');
+const SITE_URL = ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_SITE_URL) || (typeof process !== 'undefined' && process.env?.VITE_SITE_URL) || 'https://www.pscolor.online').replace(/\/$/, '');
 const DEFAULT_IMAGE = `${SITE_URL}/img/ps-color-logo.svg`;
 
 function setMetaTag(name, content, attribute = 'name') {

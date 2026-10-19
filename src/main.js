@@ -45,6 +45,12 @@ import {
 } from './theme.js';
 
 import {
+  GradientGenerator,
+  createGradientFromColors,
+  deserializeGradientFromParams
+} from './gradient.js';
+
+import {
   initCollections,
   getCollections,
   getCollection,
@@ -103,7 +109,8 @@ const icons = {
   bookmark: '<path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
   upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
   sparkle: '<path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/>',
-  image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>'
+  image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+  gradient: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9"/>'
 };
 
 const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.new}</svg>`;
@@ -248,6 +255,7 @@ document.querySelector('#app').innerHTML = `
         <nav id="menu" class="dropdown" hidden>
           <a href="/" data-route="/">Palettes</a>
           <a href="/visualizer" data-route="/visualizer">Live UI Visualizer</a>
+          <a href="/gradient" data-route="/gradient">Gradient Generator</a>
           <a href="/create" data-route="/create">Create & Extract</a>
           <a href="/collection" data-route="/collection">My Collection</a>
           <div class="line"></div>
@@ -294,6 +302,7 @@ document.querySelector('#app').innerHTML = `
             <li><a href="/popular" data-route="/popular">Popular Trends</a></li>
             <li><a href="/random" data-route="/random">Random Inspiration</a></li>
             <li><a href="/visualizer" data-route="/visualizer">Live UI Visualizer</a></li>
+            <li><a href="/gradient" data-route="/gradient">Gradient Generator</a></li>
             <li><a href="/create" data-route="/create">Create & Extract</a></li>
             <li><a href="/collection" data-route="/collection">Saved Collection</a></li>
           </ul>
@@ -344,6 +353,7 @@ function renderNavigation() {
     ['popular', 'Popular', 'popular', '/popular'],
     ['random', 'Random', 'random', '/random'],
     ['visualizer', 'Visualizer', 'sparkle', '/visualizer'],
+    ['gradient', 'Gradients', 'gradient', '/gradient'],
     ['collection', 'Collection', 'heart', '/collection']
   ];
 
@@ -485,7 +495,7 @@ function renderDesignTips() {
   const container = document.querySelector('#design-tips');
   if (!container) return;
 
-  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer'].includes(mode)) {
+  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer', 'gradient'].includes(mode)) {
     container.innerHTML = '';
     container.hidden = true;
     return;
@@ -597,7 +607,7 @@ function renderCollectionHeader() {
 }
 
 function renderMeta() {
-  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer'].includes(mode)) {
+  if (['about', 'contact', 'terms', 'privacy', 'create', 'visualizer', 'gradient'].includes(mode)) {
     document.querySelector('#meta').innerHTML = '';
     const tips = document.querySelector('#design-tips');
     if (tips) {
@@ -798,7 +808,7 @@ function route() {
     (path[1] || '').split('-').filter(t => tagsBank.some(item => item.tag === t.toLowerCase())) :
     [];
 
-  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'contact', 'terms', 'privacy', 'visualizer'].includes(root) ? root : 'new';
+  mode = ['popular', 'random', 'collection', 'palette', 'create', 'about', 'contact', 'terms', 'privacy', 'visualizer', 'gradient'].includes(root) ? root : 'new';
   query = '';
   limit = 36;
 
@@ -813,10 +823,18 @@ function route() {
     document.body.classList.remove('is-visualizer-mode');
   }
 
+  if (root === 'gradient') {
+    document.body.classList.add('is-gradient-mode');
+  } else {
+    document.body.classList.remove('is-gradient-mode');
+  }
+
   if (root === 'palette') {
     renderDetail(path[1]);
   } else if (root === 'visualizer') {
     renderVisualizer(path[1]);
+  } else if (root === 'gradient') {
+    renderGradientPage(path[1]);
   } else if (root === 'create') {
     renderCreator();
   } else if (root === 'about') {
@@ -863,6 +881,12 @@ function route() {
         path: location.pathname
       });
     }
+  } else if (root === 'gradient') {
+    updateSeo({
+      title: 'CSS Gradient Generator — Linear, Radial & Conic Gradients',
+      description: 'Create beautiful, customizable CSS linear, radial, and conic gradients. Customize color stops, copy production-ready CSS code, and download high-resolution PNGs.',
+      path: '/gradient/'
+    });
   } else if (root === 'create') {
     updateSeo({
       title: 'Create & Extract Color Palettes',
@@ -1021,6 +1045,10 @@ function renderDetail(id) {
         <a href="/visualizer/${p.id}" data-route="/visualizer/${p.id}" class="button primary preview-ui-btn" id="preview-on-ui-btn">
           ${icon('sparkle')}
           <span>Preview on UI</span>
+        </a>
+        <a href="/gradient/?palette=${p.id}" data-route="/gradient/?palette=${p.id}" class="button detail-use-gradient-btn" id="detail-use-gradient-btn" aria-label="Use palette ${p.colors.join(', ')} as gradient" title="Use as Gradient">
+          ${icon('gradient')}
+          <span>Use as Gradient</span>
         </a>
         <button class="button like ${liked ? 'liked' : ''}" data-like="${p.id}" aria-pressed="${liked}">
           ${icon('heart')}
@@ -1195,6 +1223,44 @@ function renderVisualizer(id) {
     description: `Preview palette ${p.colors.join(', ')} live on realistic website components. Test WCAG contrast and export Tailwind & CSS variables.`,
     path: `/visualizer/${p.id}`,
     image: generatePaletteSvgUrl(p.colors)
+  });
+}
+
+let activeGradientInstance = null;
+
+function renderGradientPage(paletteIdParam) {
+  let initialModel = null;
+  const search = location.search;
+
+  if (paletteIdParam) {
+    const p = getPalette(paletteIdParam);
+    if (p) {
+      initialModel = createGradientFromColors(p.colors, 'linear');
+    }
+  }
+
+  if (!initialModel && search) {
+    const params = new URLSearchParams(search);
+    const palId = params.get('palette');
+    if (palId) {
+      const p = getPalette(palId);
+      if (p) {
+        initialModel = createGradientFromColors(p.colors, 'linear');
+      }
+    } else {
+      initialModel = deserializeGradientFromParams(search);
+    }
+  }
+
+  activeGradientInstance = new GradientGenerator(initialModel);
+  document.querySelector('#content').innerHTML = activeGradientInstance.render();
+  activeGradientInstance.attachListeners(document.querySelector('#content'));
+  renderMeta();
+
+  updateSeo({
+    title: 'CSS Gradient Generator — Linear, Radial & Conic Gradients',
+    description: 'Create beautiful, customizable CSS linear, radial, and conic gradients. Customize color stops, copy production-ready CSS code, and download high-resolution PNGs.',
+    path: '/gradient/'
   });
 }
 
@@ -1752,6 +1818,7 @@ window.addEventListener('scroll', () => {
   if (['new', 'popular', 'random', 'collection'].includes(mode) &&
       !location.pathname.startsWith('/palette/') &&
       !location.pathname.startsWith('/visualizer') &&
+      !location.pathname.startsWith('/gradient') &&
       !location.pathname.startsWith('/create') &&
       !location.pathname.startsWith('/about') &&
       !location.pathname.startsWith('/contact') &&
@@ -1816,6 +1883,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.collection-menu-wrap')) closeCollectionMenu();
 
   if (!button) return;
+  if (button.closest('#gradient-generator-root')) return;
 
   if (button.id === 'collection-menu-trigger' || button.closest('#collection-menu-trigger')) {
     e.preventDefault();

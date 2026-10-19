@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build && node scripts/build-seo.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node tests/browser.mjs && node tests/monetization-review.mjs && node tests/production-readiness.mjs && node tests/contact-form.mjs && node tests/consent-management.mjs && node tests/ui-visualizer.mjs && node tests/share-image.mjs && node tests/dark-mode.mjs && node tests/design-tips.mjs && node tests/collections.mjs && node tests/collections-ui-ux.mjs"
+    "test": "node tests/browser.mjs && node tests/monetization-review.mjs && node tests/production-readiness.mjs && node tests/contact-form.mjs && node tests/consent-management.mjs && node tests/ui-visualizer.mjs && node tests/share-image.mjs && node tests/dark-mode.mjs && node tests/design-tips.mjs && node tests/collections.mjs && node tests/collections-ui-ux.mjs && node tests/gradient.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

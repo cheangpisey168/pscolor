@@ -63,6 +63,7 @@ const sitemapUrls = [
   { loc: `${SITE_URL}/popular/`, changefreq: 'daily', priority: '0.9' },
   { loc: `${SITE_URL}/random/`, changefreq: 'daily', priority: '0.8' },
   { loc: `${SITE_URL}/visualizer/`, changefreq: 'weekly', priority: '0.9' },
+  { loc: `${SITE_URL}/gradient/`, changefreq: 'weekly', priority: '0.9' },
   { loc: `${SITE_URL}/create/`, changefreq: 'weekly', priority: '0.8' },
   { loc: `${SITE_URL}/about/`, changefreq: 'monthly', priority: '0.5' },
   { loc: `${SITE_URL}/contact/`, changefreq: 'monthly', priority: '0.5' },
@@ -294,6 +295,65 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
             <li><strong>Instant Developer Tokens:</strong> One-click export for CSS Custom Properties (:root) and Tailwind CSS configuration tokens.</li>
           </ul>
         </div>
+      </article>
+    `
+  });
+
+  renderPage({
+    path: '/gradient/',
+    title: 'CSS Gradient Generator — Linear, Radial & Conic Gradients',
+    description: 'Create beautiful, customizable CSS linear, radial, and conic gradients. Customize color stops, copy production-ready CSS code, and download high-resolution PNGs.',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      'name': 'PS Color CSS Gradient Generator',
+      'url': `${SITE_URL}/gradient/`,
+      'description': 'Professional CSS linear, radial, and conic gradient generator with live preview, color stops control, and high-resolution PNG export.',
+      'applicationCategory': 'DesignApplication',
+      'operatingSystem': 'All',
+      'offers': {
+        '@type': 'Offer',
+        'price': '0',
+        'priceCurrency': 'USD'
+      }
+    },
+    bodyContent: `
+      <article class="content-page" style="max-width:960px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;line-height:1.6;">
+        <h1 style="font-size:32px;color:#0f172a;margin-bottom:12px;">CSS Gradient Generator</h1>
+        <p style="font-size:16px;color:#475569;margin-bottom:24px;">Create high-performance linear, radial, and conic gradients with live preview, customizable color stops, one-click CSS code export, and 4K/HD PNG image download.</p>
+        
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:24px;">
+          <h2 style="font-size:20px;color:#0f172a;margin-bottom:14px;">Key Capabilities</h2>
+          <ul style="line-height:1.8;padding-left:20px;">
+            <li><strong>Linear Gradients:</strong> Full 0–360° directional angle control with rapid angle presets (0°, 45°, 90°, 135°, 180°, 270°).</li>
+            <li><strong>Radial Gradients:</strong> Precise circular and elliptical geometries with 9 center positioning presets.</li>
+            <li><strong>Conic Gradients:</strong> 360° circular angle sweeps and angular center controls for color wheels and iridescent UI elements.</li>
+            <li><strong>2 to 8 Color Stops:</strong> Add, delete, reorder, and fine-tune stop positions with hex input and native color pickers.</li>
+            <li><strong>Instant Export:</strong> Single-click copy for standards-compliant CSS code and high-resolution PNG downloads with custom dimensions (1080×1080, 1080×1350, 1920×1080).</li>
+            <li><strong>Save &amp; Share:</strong> Save favorite gradient combinations locally in browser storage or share via unique config URLs.</li>
+          </ul>
+        </div>
+
+        <section style="margin-top:32px;">
+          <h2 style="font-size:22px;color:#0f172a;margin-bottom:10px;">CSS Gradient Types &amp; Syntax Guide</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+              <h3 style="font-size:16px;margin:0 0 8px 0;color:#0f172a;">Linear Gradients</h3>
+              <p style="font-size:13px;color:#475569;margin:0 0 10px 0;">Blends colors smoothly along a directional line.</p>
+              <pre style="background:#0f172a;color:#38bdf8;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;"><code>background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);</code></pre>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+              <h3 style="font-size:16px;margin:0 0 8px 0;color:#0f172a;">Radial Gradients</h3>
+              <p style="font-size:13px;color:#475569;margin:0 0 10px 0;">Radiates colors outward from a focal point.</p>
+              <pre style="background:#0f172a;color:#38bdf8;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;"><code>background: radial-gradient(circle at center, #f857a6 0%, #ff5858 50%, #111827 100%);</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section style="margin-top:32px;">
+          <h2 style="font-size:22px;color:#0f172a;margin-bottom:10px;">WCAG 2.1 Accessibility Considerations</h2>
+          <p style="font-size:14px;color:#475569;">When placing text over CSS gradients, always evaluate contrast against all color stops to ensure compliance with WCAG 2.1 AA (4.5:1 for body text, 3:1 for large text). Use semi-transparent backing surfaces or high-contrast drop shadows when text spans across contrasting color bands.</p>
+        </section>
       </article>
     `
   });

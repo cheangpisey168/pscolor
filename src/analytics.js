@@ -10,7 +10,7 @@
  *  - Complete cookie purging on consent withdrawal
  */
 
-const GA_ID = import.meta.env.VITE_GA_ID || '';
+const GA_ID = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GA_ID) || (typeof process !== 'undefined' && process.env?.VITE_GA_ID) || '';
 export const STORAGE_ANALYTICS_KEY = 'ps-color-analytics-consent';
 export const STORAGE_ADVERTISING_KEY = 'ps-color-advertising-consent';
 
@@ -433,5 +433,61 @@ export function trackThemeChange(preference, effectiveTheme) {
     effective_theme: effectiveTheme
   });
 }
+
+/**
+ * Track Gradient Generator Open
+ */
+export function trackGradientOpen(gradientType = 'linear') {
+  trackEvent('gradient_open', {
+    gradient_type: gradientType
+  });
+}
+
+/**
+ * Track Gradient Type Change (linear, radial, conic)
+ */
+export function trackGradientTypeChange(gradientType) {
+  trackEvent('gradient_type_change', {
+    gradient_type: gradientType
+  });
+}
+
+/**
+ * Track Gradient Color Stop Change
+ */
+export function trackGradientColorChange(stopIndex) {
+  trackEvent('gradient_color_change', {
+    stop_index: Number(stopIndex) || 0
+  });
+}
+
+/**
+ * Track Gradient CSS Copy to Clipboard
+ */
+export function trackGradientCopyCss(gradientType) {
+  trackEvent('gradient_copy_css', {
+    gradient_type: gradientType || 'linear'
+  });
+}
+
+/**
+ * Track Gradient PNG Download
+ */
+export function trackGradientDownloadPng(gradientType, dimensions) {
+  trackEvent('gradient_download_png', {
+    gradient_type: gradientType || 'linear',
+    dimensions: dimensions || '1080x1080'
+  });
+}
+
+/**
+ * Track Gradient Save to localStorage
+ */
+export function trackGradientSave(gradientType) {
+  trackEvent('gradient_save', {
+    gradient_type: gradientType || 'linear'
+  });
+}
+
 
 
