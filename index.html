@@ -48,16 +48,14 @@
         'wait_for_update': 500
       });
 
-      // Default baseline for all other regions (Zero unconsented tracking)
+      // Global fallback default for all other regions (including US crawlers)
       gtag('consent', 'default', {
-        'ad_storage': 'denied',
-        'analytics_storage': 'denied',
-        'ad_user_data': 'denied',
-        'ad_personalization': 'denied',
-        'personalization_storage': 'denied',
+        'ad_storage': 'granted',
+        'analytics_storage': 'granted',
+        'ad_user_data': 'granted',
+        'ad_personalization': 'granted',
         'functionality_storage': 'granted',
-        'security_storage': 'granted',
-        'wait_for_update': 500
+        'security_storage': 'granted'
       });
     </script>
 
@@ -102,7 +100,53 @@
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <header class="site-header">
+        <div class="header-inner wrap">
+          <a class="brand left logo" href="/" aria-label="PS color home">
+            <span style="font-weight:700;font-size:20px;letter-spacing:-0.5px;">PS color</span>
+          </a>
+          <nav id="menu" class="dropdown" aria-label="Main navigation">
+            <a href="/" data-route="/">Palettes</a>
+            <a href="/visualizer/" data-route="/visualizer">Live UI Visualizer</a>
+            <a href="/gradient/" data-route="/gradient">CSS Gradient Generator</a>
+            <a href="/guides/" data-route="/guides">Design Guides</a>
+          </nav>
+        </div>
+      </header>
+
+      <div class="main wrap">
+        <main id="content">
+          <section class="intro-hero" style="margin-bottom: 24px;">
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">Curated Color Palettes for Designers and Artists</h1>
+            <p style="font-size: 15px; color: var(--text-muted, #64748b); max-width: 720px; line-height: 1.6;">
+              Discover beautiful, copyright-safe 4-color palettes for web design, branding, and mobile apps. Test WCAG 2.1 accessibility contrast ratios, generate CSS gradients, preview palettes in real-time UI layouts, and export design tokens for Tailwind CSS and Figma. 100% free for commercial and personal usage.
+            </p>
+          </section>
+        </main>
+      </div>
+
+      <footer class="site-footer">
+        <div class="footer-inner wrap">
+          <div class="footer-links" style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+            <a href="/about/">About PS color</a>
+            <a href="/contact/">Contact Us</a>
+            <a href="/terms/">Terms of Service</a>
+            <a href="/privacy/">Privacy Policy</a>
+            <a href="/guides/">Design Guides</a>
+          </div>
+          <p class="footer-copy" style="font-size: 13px; color: var(--text-muted, #64748b);">
+            &copy; 2026 PS color. Engineered for web designers and mobile developers. Free for commercial &amp; personal use.
+          </p>
+        </div>
+      </footer>
+    </div>
+    <noscript>
+      <div style="padding: 24px; text-align: center; background: #f8fafc; color: #0f172a; border-bottom: 1px solid #e2e8f0; font-family: system-ui, -apple-system, sans-serif;">
+        <p style="margin: 0 0 8px 0; font-weight: 600;">JavaScript is required for interactive color copying and palette creation.</p>
+        <p style="margin: 0; font-size: 14px; color: #475569;">You can still explore our static resources: <a href="/guides/" style="color: #2563eb; text-decoration: underline;">Design Guides</a> &bull; <a href="/about/" style="color: #2563eb; text-decoration: underline;">About PS color</a> &bull; <a href="/privacy/" style="color: #2563eb; text-decoration: underline;">Privacy Policy</a></p>
+      </div>
+    </noscript>
     <div id="toast" role="status" aria-live="polite"></div>
     <dialog id="dialog"></dialog>
     <script type="module" src="/src/main.js"></script>

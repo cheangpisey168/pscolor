@@ -50,7 +50,10 @@ function hexToRgb(hex) {
 }
 
 // 1. Generate robots.txt
-const robotsTxt = `User-agent: *
+const robotsTxt = `User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: *
 Allow: /
 
 Sitemap: ${SITE_URL}/sitemap.xml
@@ -133,7 +136,8 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
     let html = templateHtml;
 
     // Title
-    html = html.replace(/<title>.*?<\/title>/, `<title>${title} — PS color</title>`);
+    const fullTitle = title.includes('PS color') ? title : `${title} — PS color`;
+    html = html.replace(/<title>.*?<\/title>/, `<title>${fullTitle}</title>`);
 
     // Description
     html = html.replace(
@@ -148,7 +152,7 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
     );
 
     // Open Graph
-    html = html.replace(/<meta\s+property="og:title"\s+content=".*?"\s*\/?>/i, `<meta property="og:title" content="${title} — PS color" />`);
+    html = html.replace(/<meta\s+property="og:title"\s+content=".*?"\s*\/?>/i, `<meta property="og:title" content="${fullTitle}" />`);
     html = html.replace(/<meta\s+property="og:description"\s+content=".*?"\s*\/?>/i, `<meta property="og:description" content="${description}" />`);
     html = html.replace(/<meta\s+property="og:url"\s+content=".*?"\s*\/?>/i, `<meta property="og:url" content="${fullUrl}" />`);
     if (ogImage) {
@@ -156,7 +160,7 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
     }
 
     // Twitter
-    html = html.replace(/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:title" content="${title} — PS color" />`);
+    html = html.replace(/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:title" content="${fullTitle}" />`);
     html = html.replace(/<meta\s+name="twitter:description"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:description" content="${description}" />`);
     if (ogImage) {
       html = html.replace(/<meta\s+name="twitter:image"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:image" content="${ogImage}" />`);
@@ -173,13 +177,115 @@ if (existsSync(distDir) && existsSync(join(distDir, 'index.html'))) {
 
     // Pre-rendered App Body
     if (bodyContent) {
-      html = html.replace('<div id="app"></div>', `<div id="app">${bodyContent}</div>`);
+      html = html.replace(/<div id="app">[\s\S]*?<\/div>(?=\s*(?:<noscript>|<div id="toast"))/, `<div id="app">\n${bodyContent}\n    </div>`);
     }
 
     writeFileSync(join(targetDir, 'index.html'), html, 'utf-8');
   }
 
+  // Helper function to render rich static homepage with curated palettes for crawler indexability
+  function renderHomeBodyHtml() {
+    const featuredPalettes = palettes.slice(0, 24);
+    const cardsHtml = featuredPalettes.map(p => {
+      const c1 = p.colors[0].toUpperCase();
+      const c2 = p.colors[1].toUpperCase();
+      const c3 = p.colors[2].toUpperCase();
+      const c4 = p.colors[3].toUpperCase();
+      const tags = (p.tags || []).slice(0, 3).map(t => `<span style="display:inline-block;padding:2px 8px;font-size:11px;background:#e2e8f0;border-radius:12px;color:#334155;margin-right:4px;">${t}</span>`).join('');
+      return `
+        <article class="palette-card-static" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);display:flex;flex-direction:column;">
+          <a href="/palette/${p.id}/" style="display:flex;flex-direction:column;height:180px;text-decoration:none;" aria-label="Palette ${c1} ${c2} ${c3} ${c4}">
+            <div style="flex:41;background:${c1};display:flex;align-items:flex-end;padding:4px 8px;font-size:11px;font-weight:600;color:rgba(0,0,0,0.7);">${c1}</div>
+            <div style="flex:26;background:${c2};display:flex;align-items:flex-end;padding:4px 8px;font-size:11px;font-weight:600;color:rgba(0,0,0,0.7);">${c2}</div>
+            <div style="flex:18;background:${c3};display:flex;align-items:flex-end;padding:4px 8px;font-size:11px;font-weight:600;color:rgba(0,0,0,0.7);">${c3}</div>
+            <div style="flex:15;background:${c4};display:flex;align-items:flex-end;padding:4px 8px;font-size:11px;font-weight:600;color:rgba(0,0,0,0.7);">${c4}</div>
+          </a>
+          <div style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f5f9;">
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">${tags}</div>
+            <a href="/palette/${p.id}/" style="font-size:12px;color:#2563eb;text-decoration:none;font-weight:600;">View &amp; Export &rarr;</a>
+          </div>
+        </article>
+      `;
+    }).join('\n');
+
+    return `
+      <header class="site-header">
+        <div class="header-inner wrap" style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #e2e8f0;">
+          <a class="brand logo" href="/" style="font-size:22px;font-weight:700;text-decoration:none;color:#0f172a;">PS color</a>
+          <nav aria-label="Main navigation" style="display:flex;gap:20px;">
+            <a href="/" style="color:#0f172a;text-decoration:none;font-weight:600;">Palettes</a>
+            <a href="/visualizer/" style="color:#475569;text-decoration:none;">UI Visualizer</a>
+            <a href="/gradient/" style="color:#475569;text-decoration:none;">Gradients</a>
+            <a href="/guides/" style="color:#475569;text-decoration:none;">Guides</a>
+          </nav>
+        </div>
+      </header>
+
+      <div class="main wrap" style="max-width:1200px;margin:0 auto;padding:24px;">
+        <main id="content">
+          <section class="hero-section" style="margin-bottom:32px;text-align:left;">
+            <h1 style="font-size:32px;color:#0f172a;margin-bottom:12px;line-height:1.2;">Curated Color Palettes for Designers &amp; Developers</h1>
+            <p style="font-size:16px;color:#475569;max-width:800px;line-height:1.6;margin-bottom:20px;">
+              Discover beautiful, copyright-safe color palettes for your next website, mobile application, or digital art project. Browse hundreds of curated 4-color palettes, test linearized WCAG 2.1 contrast ratios, extract palettes from photos, and export production-ready Tailwind CSS and Figma tokens. 100% free for commercial use.
+            </p>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <a href="/visualizer/" style="display:inline-block;background:#0f172a;color:#ffffff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Live UI Visualizer</a>
+              <a href="/gradient/" style="display:inline-block;background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">CSS Gradient Generator</a>
+              <a href="/guides/" style="display:inline-block;background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Design Guides</a>
+            </div>
+          </section>
+
+          <section class="palettes-grid-section" style="margin-bottom:48px;">
+            <h2 style="font-size:22px;color:#0f172a;margin-bottom:16px;">Featured Color Harmonies</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:20px;">
+              ${cardsHtml}
+            </div>
+          </section>
+
+          <section class="features-summary" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:28px;margin-bottom:40px;">
+            <h2 style="font-size:20px;color:#0f172a;margin-bottom:12px;">The PS Color Advantage</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px;line-height:1.6;color:#475569;font-size:14px;">
+              <div>
+                <h3 style="font-size:16px;color:#0f172a;margin-bottom:6px;">4-Tier Visual Weight Architecture</h3>
+                <p>Every palette is balanced for real-world interface design: 41% Canvas, 26% Surface, 18% Borders, and 15% Accent.</p>
+              </div>
+              <div>
+                <h3 style="font-size:16px;color:#0f172a;margin-bottom:6px;">WCAG 2.1 Contrast Testing</h3>
+                <p>Ensure your digital products meet accessibility standards with automated contrast ratios for Level AA (4.5:1) and AAA (7.0:1).</p>
+              </div>
+              <div>
+                <h3 style="font-size:16px;color:#0f172a;margin-bottom:6px;">Instant Developer Tokens</h3>
+                <p>Copy CSS variables (:root), Tailwind CSS configuration snippets, and Figma design tokens in a single click.</p>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <footer class="site-footer" style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:32px 24px;margin-top:48px;">
+        <div class="footer-inner wrap" style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;gap:20px;flex-wrap:wrap;">
+            <a href="/about/" style="color:#475569;text-decoration:none;font-size:14px;">About PS color</a>
+            <a href="/contact/" style="color:#475569;text-decoration:none;font-size:14px;">Contact Us</a>
+            <a href="/terms/" style="color:#475569;text-decoration:none;font-size:14px;">Terms of Service</a>
+            <a href="/privacy/" style="color:#475569;text-decoration:none;font-size:14px;">Privacy Policy</a>
+            <a href="/guides/" style="color:#475569;text-decoration:none;font-size:14px;">Educational Guides</a>
+          </div>
+          <p style="font-size:13px;color:#64748b;margin:0;">
+            &copy; 2026 PS Color Studio. All palettes are copyright-safe and open for commercial &amp; personal projects.
+          </p>
+        </div>
+      </footer>
+    `;
+  }
+
   // Static core routes
+  renderPage({
+    path: '/',
+    title: 'PS color — Color Palettes for Designers and Artists',
+    description: 'Discover beautiful, copyright-safe color palettes for your next project. Browse hundreds of curated 4-color palettes, test WCAG contrast, extract from photos, and export CSS & Figma tokens with PS color.',
+    bodyContent: renderHomeBodyHtml()
+  });
   renderPage({
     path: '/about/',
     title: 'About PS color — Independent Color Discovery',
